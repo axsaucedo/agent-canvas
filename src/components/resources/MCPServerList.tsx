@@ -45,14 +45,14 @@ export function MCPServerList() {
       header: 'Tools',
       render: (item: MCPServer) => (
         <div className="flex flex-wrap gap-1">
-          {item.status?.tools?.slice(0, 3).map((tool) => (
+          {item.status?.availableTools?.slice(0, 3).map((tool) => (
             <Badge key={tool} variant="outline" className="text-[10px]">
               {tool}
             </Badge>
           ))}
-          {(item.status?.tools?.length || 0) > 3 && (
+          {(item.status?.availableTools?.length || 0) > 3 && (
             <Badge variant="outline" className="text-[10px]">
-              +{(item.status?.tools?.length || 0) - 3}
+              +{(item.status?.availableTools?.length || 0) - 3}
             </Badge>
           )}
         </div>

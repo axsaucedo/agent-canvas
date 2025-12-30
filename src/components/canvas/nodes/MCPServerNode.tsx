@@ -15,7 +15,7 @@ function MCPServerNodeComponent({ data, selected }: NodeProps) {
   const nodeData = data as unknown as MCPServerNodeData;
   const resource = nodeData.resource;
   const status = resource.status?.phase || 'Unknown';
-  const tools = resource.status?.tools || [];
+  const tools = resource.status?.availableTools || [];
 
   const getStatusVariant = () => {
     switch (status) {
@@ -28,9 +28,8 @@ function MCPServerNodeComponent({ data, selected }: NodeProps) {
 
   const getTypeLabel = () => {
     switch (resource.spec.type) {
-      case 'uvx': return 'UVX';
-      case 'npx': return 'NPX';
-      case 'python-custom': return 'Python';
+      case 'python-runtime': return 'Python';
+      case 'node-runtime': return 'Node.js';
       default: return resource.spec.type;
     }
   };
