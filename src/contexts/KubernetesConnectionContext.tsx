@@ -23,7 +23,7 @@ interface KubernetesConnectionContextType extends ConnectionState {
   connect: (baseUrl: string, namespace?: string) => Promise<boolean>;
   disconnect: () => void;
   refreshAll: () => Promise<void>;
-  startPolling: () => void;
+  startPolling: (intervalOverride?: number) => void;
   stopPolling: () => void;
   // CRUD operations
   createModelAPI: (api: ModelAPI) => Promise<ModelAPI>;
@@ -126,14 +126,17 @@ export function KubernetesConnectionProvider({ children }: { children: React.Rea
     }
   }, [store, addLogEntry]);
 
-  // Start polling with interval from store
-  const startPolling = useCallback(() => {
+  // Start polling with interval from store (or override)
+  const startPolling = useCallback((intervalOverride?: number) => {
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current);
     }
     
-    const interval = store.autoRefreshInterval;
-    if (!store.autoRefreshEnabled || interval <= 0) {
+    // Use override if provided, otherwise read from store
+    const interval = intervalOverride ?? store.autoRefreshInterval;
+    const enabled = intervalOverride !== undefined ? intervalOverride > 0 : store.autoRefreshEnabled;
+    
+    if (!enabled || interval <= 0) {
       store.setNextRefreshTime(null);
       return;
     }

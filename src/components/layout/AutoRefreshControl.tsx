@@ -55,18 +55,19 @@ export function AutoRefreshControl() {
   }, [autoRefreshEnabled, nextRefreshTime]);
 
   const handleIntervalChange = (interval: number) => {
+    stopPolling();
+    
     if (interval === 0) {
       setAutoRefreshEnabled(false);
+      setAutoRefreshInterval(0);
       setNextRefreshTime(null);
-      stopPolling();
     } else {
       setAutoRefreshEnabled(true);
       setAutoRefreshInterval(interval);
       // Immediately reset countdown with new interval
       setNextRefreshTime(Date.now() + interval);
-      // Restart polling with new interval
-      stopPolling();
-      setTimeout(() => startPolling(), 0);
+      // Start polling with the new interval directly (bypass stale closure)
+      startPolling(interval);
     }
   };
 
@@ -75,9 +76,9 @@ export function AutoRefreshControl() {
       await refreshAll();
       // Reset countdown after manual refresh
       if (autoRefreshEnabled && autoRefreshInterval > 0) {
-        setNextRefreshTime(Date.now() + autoRefreshInterval);
         stopPolling();
-        setTimeout(() => startPolling(), 0);
+        setNextRefreshTime(Date.now() + autoRefreshInterval);
+        startPolling(autoRefreshInterval);
       }
     }
   };
