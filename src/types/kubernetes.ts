@@ -22,6 +22,7 @@ export interface ResourceMetadata {
   namespace: string;
   uid?: string;
   creationTimestamp?: string;
+  resourceVersion?: string;
   labels?: Record<string, string>;
   annotations?: Record<string, string>;
 }
@@ -145,6 +146,18 @@ export interface Deployment {
     selector: {
       matchLabels: Record<string, string>;
     };
+    template?: {
+      metadata?: {
+        labels?: Record<string, string>;
+      };
+      spec?: {
+        containers?: {
+          name: string;
+          image: string;
+          ports?: { containerPort: number }[];
+        }[];
+      };
+    };
   };
   status?: {
     replicas: number;
@@ -174,9 +187,51 @@ export interface PersistentVolumeClaim {
   };
 }
 
+// Service type (new)
+export interface Service {
+  apiVersion: string;
+  kind: 'Service';
+  metadata: ResourceMetadata;
+  spec: {
+    type: 'ClusterIP' | 'NodePort' | 'LoadBalancer' | 'ExternalName';
+    ports: {
+      port: number;
+      targetPort: number | string;
+      protocol: string;
+      name?: string;
+      nodePort?: number;
+    }[];
+    selector?: Record<string, string>;
+    clusterIP?: string;
+    externalIPs?: string[];
+  };
+  status?: {
+    loadBalancer?: {
+      ingress?: { ip?: string; hostname?: string }[];
+    };
+  };
+}
+
+// ConfigMap type (new)
+export interface ConfigMap {
+  apiVersion: string;
+  kind: 'ConfigMap';
+  metadata: ResourceMetadata;
+  data?: Record<string, string>;
+  binaryData?: Record<string, string>;
+}
+
+// Secret reference type (new - without actual values for security)
+export interface SecretRef {
+  apiVersion: string;
+  kind: 'Secret';
+  metadata: ResourceMetadata;
+  type: string;
+}
+
 // Union types for resources
 export type AgenticResource = ModelAPI | MCPServer | Agent;
-export type KubernetesResource = Pod | Deployment | PersistentVolumeClaim;
+export type KubernetesResource = Pod | Deployment | PersistentVolumeClaim | Service;
 export type Resource = AgenticResource | KubernetesResource;
 
 // Log entry

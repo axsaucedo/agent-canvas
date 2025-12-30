@@ -6,6 +6,7 @@ import type {
   Pod,
   Deployment,
   PersistentVolumeClaim,
+  Service,
   LogEntry,
   CanvasNode,
   CanvasConnection,
@@ -22,6 +23,7 @@ interface KubernetesState {
   pods: Pod[];
   deployments: Deployment[];
   pvcs: PersistentVolumeClaim[];
+  services: Service[];
   
   // Logs
   logs: LogEntry[];
@@ -54,8 +56,15 @@ interface KubernetesState {
   deleteAgent: (name: string) => void;
   
   setPods: (pods: Pod[]) => void;
+  deletePod: (name: string) => void;
   setDeployments: (deployments: Deployment[]) => void;
+  updateDeployment: (name: string, deployment: Partial<Deployment>) => void;
+  deleteDeployment: (name: string) => void;
   setPVCs: (pvcs: PersistentVolumeClaim[]) => void;
+  deletePVC: (name: string) => void;
+  setServices: (services: Service[]) => void;
+  addService: (service: Service) => void;
+  deleteService: (name: string) => void;
   
   addLog: (log: LogEntry) => void;
   clearLogs: () => void;
@@ -351,14 +360,15 @@ const generateMockLogs = (): LogEntry[] => [
 ];
 
 export const useKubernetesStore = create<KubernetesState>((set) => ({
-  // Initialize with mock data
-  modelAPIs: generateMockModelAPIs(),
-  mcpServers: generateMockMCPServers(),
-  agents: generateMockAgents(),
-  pods: generateMockPods(),
-  deployments: generateMockDeployments(),
-  pvcs: generateMockPVCs(),
-  logs: generateMockLogs(),
+  // Initialize with empty arrays (real data comes from API)
+  modelAPIs: [],
+  mcpServers: [],
+  agents: [],
+  pods: [],
+  deployments: [],
+  pvcs: [],
+  services: [],
+  logs: [],
   
   canvasNodes: [],
   canvasConnections: [],
@@ -401,8 +411,17 @@ export const useKubernetesStore = create<KubernetesState>((set) => ({
   
   // K8s resources
   setPods: (pods) => set({ pods }),
+  deletePod: (name) => set((state) => ({ pods: state.pods.filter((p) => p.metadata.name !== name) })),
   setDeployments: (deployments) => set({ deployments }),
+  updateDeployment: (name, deployment) => set((state) => ({
+    deployments: state.deployments.map((d) => d.metadata.name === name ? { ...d, ...deployment } : d),
+  })),
+  deleteDeployment: (name) => set((state) => ({ deployments: state.deployments.filter((d) => d.metadata.name !== name) })),
   setPVCs: (pvcs) => set({ pvcs }),
+  deletePVC: (name) => set((state) => ({ pvcs: state.pvcs.filter((p) => p.metadata.name !== name) })),
+  setServices: (services) => set({ services }),
+  addService: (service) => set((state) => ({ services: [...state.services, service] })),
+  deleteService: (name) => set((state) => ({ services: state.services.filter((s) => s.metadata.name !== name) })),
   
   // Logs
   addLog: (log) => set((state) => ({ logs: [log, ...state.logs].slice(0, 1000) })),
