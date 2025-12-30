@@ -35,9 +35,9 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-  { id: 'canvas', label: 'Visual Editor', icon: Workflow },
-  { id: 'modelapis', label: 'Model APIs', icon: Box },
-  { id: 'mcpservers', label: 'MCP Servers', icon: Server },
+  { id: 'visual-editor', label: 'Visual Editor', icon: Workflow },
+  { id: 'model-apis', label: 'Model APIs', icon: Box },
+  { id: 'mcp-servers', label: 'MCP Servers', icon: Server },
   { id: 'agents', label: 'Agents', icon: Bot },
 ];
 
@@ -58,8 +58,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
   const getResourceCount = (id: string): number | undefined => {
     switch (id) {
-      case 'modelapis': return modelAPIs.length;
-      case 'mcpservers': return mcpServers.length;
+      case 'model-apis': return modelAPIs.length;
+      case 'mcp-servers': return mcpServers.length;
       case 'agents': return agents.length;
       case 'alerts': return logs.filter(l => l.level === 'error').length || undefined;
       default: return undefined;
@@ -135,7 +135,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         {/* Quick Create */}
         {!collapsed && (
           <Button
-            onClick={() => setActiveTab('canvas')}
+            onClick={() => setActiveTab('visual-editor')}
             className="w-full justify-start gap-2"
             size="sm"
           >
@@ -145,7 +145,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         )}
         {collapsed && (
           <Button
-            onClick={() => setActiveTab('canvas')}
+            onClick={() => setActiveTab('visual-editor')}
             size="icon"
             className="w-full"
           >

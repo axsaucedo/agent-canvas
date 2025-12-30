@@ -1,134 +1,166 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { 
-  Box, Server, Bot, Plus, Minus, Move, Trash2, Settings, 
-  ZoomIn, ZoomOut, Maximize2, MousePointer, Link2, Save, Undo, Redo,
-  Play, Pause, Download
-} from 'lucide-react';
+import React, { useCallback, useMemo, useEffect } from 'react';
+import {
+  ReactFlow,
+  MiniMap,
+  Controls,
+  Background,
+  useNodesState,
+  useEdgesState,
+  addEdge,
+  Connection,
+  Edge,
+  BackgroundVariant,
+  Panel,
+  Node,
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
+import { Box, Server, Bot, Save, Download, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useKubernetesStore } from '@/stores/kubernetesStore';
 import { cn } from '@/lib/utils';
-import type { CanvasNode, CanvasConnection, AgenticResource } from '@/types/kubernetes';
+import type { ModelAPI, MCPServer, Agent } from '@/types/kubernetes';
 
-interface NodeProps {
-  node: CanvasNode;
-  isSelected: boolean;
-  onSelect: (id: string) => void;
-  onDragStart: (id: string, e: React.MouseEvent) => void;
-  onConnectionStart: (id: string, handle: string) => void;
-  zoom: number;
+// Custom Node Components
+interface NodeData {
+  [key: string]: unknown;
+  label: string;
+  type: 'ModelAPI' | 'MCPServer' | 'Agent';
+  status?: string;
+  mode?: string;
+  mcpType?: string;
+  mcpServers?: string[];
+  modelAPI?: string;
+  tools?: string[];
+  resource: ModelAPI | MCPServer | Agent;
 }
 
-const resourceIcons = {
-  ModelAPI: Box,
-  MCPServer: Server,
-  Agent: Bot,
-};
-
-const resourceColors = {
-  ModelAPI: 'modelapi',
-  MCPServer: 'mcpserver',
-  Agent: 'agent',
-};
-
-function CanvasNodeComponent({ node, isSelected, onSelect, onDragStart, onConnectionStart, zoom }: NodeProps) {
-  const Icon = resourceIcons[node.type];
-  const color = resourceColors[node.type];
-  const status = (node.data as any).status?.phase || 'Unknown';
-
+function ModelAPINode({ data, selected }: { data: NodeData; selected: boolean }) {
+  const resource = data.resource as ModelAPI;
   return (
-    <div
-      className={cn(
-        'absolute resource-node p-4 min-w-[200px] cursor-move select-none',
-        isSelected && 'selected ring-2 ring-primary'
-      )}
-      style={{
-        left: node.position.x,
-        top: node.position.y,
-        transform: `scale(${1 / zoom})`,
-        transformOrigin: 'top left',
-      }}
-      onMouseDown={(e) => {
-        e.stopPropagation();
-        onSelect(node.id);
-        onDragStart(node.id, e);
-      }}
-    >
-      {/* Input handles */}
-      <div
-        className="absolute -left-2 top-1/2 -translate-y-1/2 h-4 w-4 rounded-full bg-primary border-2 border-background cursor-crosshair hover:scale-125 transition-transform"
-        onMouseDown={(e) => {
-          e.stopPropagation();
-          onConnectionStart(node.id, 'input');
-        }}
-      />
-
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-3">
-        <div
-          className="h-10 w-10 rounded-lg flex items-center justify-center"
-          style={{ backgroundColor: `hsl(var(--${color}-color) / 0.2)` }}
-        >
-          <Icon className="h-5 w-5" style={{ color: `hsl(var(--${color}-color))` }} />
+    <div className={cn(
+      'px-4 py-3 rounded-lg border-2 min-w-[200px] bg-card transition-all',
+      selected ? 'border-primary shadow-glow-primary' : 'border-border hover:border-primary/50'
+    )}>
+      <div className="flex items-center gap-3 mb-2">
+        <div className="h-8 w-8 rounded-lg bg-modelapi/20 flex items-center justify-center">
+          <Box className="h-4 w-4 text-modelapi" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-foreground truncate">
-            {node.data.metadata.name}
-          </p>
-          <p className="text-xs text-muted-foreground">{node.type}</p>
+          <p className="text-sm font-semibold text-foreground truncate">{data.label}</p>
+          <p className="text-xs text-muted-foreground">ModelAPI</p>
         </div>
-        <Badge variant={status === 'Running' ? 'success' : status === 'Error' ? 'error' : 'warning'} className="text-[10px]">
-          {status}
+        <Badge variant={data.status === 'Running' ? 'success' : data.status === 'Error' ? 'error' : 'warning'} className="text-[10px]">
+          {data.status}
         </Badge>
       </div>
-
-      {/* Details */}
-      <div className="space-y-1.5 text-xs text-muted-foreground">
-        {node.type === 'ModelAPI' && (
-          <p>Mode: {(node.data as any).spec.mode}</p>
-        )}
-        {node.type === 'MCPServer' && (
-          <p>Type: {(node.data as any).spec.type}</p>
-        )}
-        {node.type === 'Agent' && (
-          <>
-            <p>Model: {(node.data as any).spec.modelAPI}</p>
-            <p>MCPs: {(node.data as any).spec.mcpServers?.length || 0}</p>
-          </>
+      <div className="space-y-1 text-xs text-muted-foreground">
+        <p>Mode: <span className="text-foreground">{resource.spec.mode}</span></p>
+        {resource.status?.endpoint && (
+          <p className="font-mono truncate">{resource.status.endpoint}</p>
         )}
       </div>
-
-      {/* Output handles */}
-      <div
-        className="absolute -right-2 top-1/2 -translate-y-1/2 h-4 w-4 rounded-full bg-accent border-2 border-background cursor-crosshair hover:scale-125 transition-transform"
-        onMouseDown={(e) => {
-          e.stopPropagation();
-          onConnectionStart(node.id, 'output');
-        }}
-      />
     </div>
   );
 }
 
-interface ResourcePaletteItemProps {
-  type: 'ModelAPI' | 'MCPServer' | 'Agent';
-  onDragStart: (type: string) => void;
+function MCPServerNode({ data, selected }: { data: NodeData; selected: boolean }) {
+  const resource = data.resource as MCPServer;
+  return (
+    <div className={cn(
+      'px-4 py-3 rounded-lg border-2 min-w-[200px] bg-card transition-all',
+      selected ? 'border-primary shadow-glow-primary' : 'border-border hover:border-mcpserver/50'
+    )}>
+      <div className="flex items-center gap-3 mb-2">
+        <div className="h-8 w-8 rounded-lg bg-mcpserver/20 flex items-center justify-center">
+          <Server className="h-4 w-4 text-mcpserver" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-foreground truncate">{data.label}</p>
+          <p className="text-xs text-muted-foreground">MCPServer</p>
+        </div>
+        <Badge variant={data.status === 'Running' ? 'success' : data.status === 'Error' ? 'error' : 'warning'} className="text-[10px]">
+          {data.status}
+        </Badge>
+      </div>
+      <div className="space-y-1 text-xs text-muted-foreground">
+        <p>Type: <span className="text-foreground">{resource.spec.type}</span></p>
+        <p>MCP: <span className="text-foreground font-mono">{resource.spec.config.mcp}</span></p>
+        {resource.status?.tools && resource.status.tools.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {resource.status.tools.slice(0, 3).map(tool => (
+              <Badge key={tool} variant="outline" className="text-[9px]">{tool}</Badge>
+            ))}
+            {resource.status.tools.length > 3 && (
+              <Badge variant="outline" className="text-[9px]">+{resource.status.tools.length - 3}</Badge>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
-function ResourcePaletteItem({ type, onDragStart }: ResourcePaletteItemProps) {
-  const Icon = resourceIcons[type];
-  const color = resourceColors[type];
+function AgentNode({ data, selected }: { data: NodeData; selected: boolean }) {
+  const resource = data.resource as Agent;
+  return (
+    <div className={cn(
+      'px-4 py-3 rounded-lg border-2 min-w-[220px] bg-card transition-all',
+      selected ? 'border-primary shadow-glow-primary' : 'border-border hover:border-agent/50'
+    )}>
+      <div className="flex items-center gap-3 mb-2">
+        <div className="h-8 w-8 rounded-lg bg-agent/20 flex items-center justify-center">
+          <Bot className="h-4 w-4 text-agent" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-foreground truncate">{data.label}</p>
+          <p className="text-xs text-muted-foreground">Agent</p>
+        </div>
+        <Badge variant={data.status === 'Running' ? 'success' : data.status === 'Error' ? 'error' : 'warning'} className="text-[10px]">
+          {data.status}
+        </Badge>
+      </div>
+      <div className="space-y-1 text-xs text-muted-foreground">
+        <p>Model: <Badge variant="modelapi" className="text-[9px]">{resource.spec.modelAPI}</Badge></p>
+        {resource.spec.mcpServers && resource.spec.mcpServers.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1">
+            {resource.spec.mcpServers.map(mcp => (
+              <Badge key={mcp} variant="mcpserver" className="text-[9px]">{mcp}</Badge>
+            ))}
+          </div>
+        )}
+        {resource.spec.config?.description && (
+          <p className="text-muted-foreground mt-1 truncate" title={resource.spec.config.description}>
+            {resource.spec.config.description}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
 
+const nodeTypes = {
+  modelapi: ModelAPINode,
+  mcpserver: MCPServerNode,
+  agent: AgentNode,
+};
+
+interface PaletteItemProps {
+  type: 'ModelAPI' | 'MCPServer' | 'Agent';
+  icon: React.ElementType;
+  color: string;
+  onDragStart: (event: React.DragEvent, type: string) => void;
+}
+
+function PaletteItem({ type, icon: Icon, color, onDragStart }: PaletteItemProps) {
   return (
     <div
       className="flex items-center gap-2 p-3 rounded-lg bg-muted/30 border border-border hover:border-primary/50 cursor-grab active:cursor-grabbing transition-all"
       draggable
-      onDragStart={() => onDragStart(type)}
+      onDragStart={(e) => onDragStart(e, type)}
     >
-      <div
-        className="h-8 w-8 rounded-lg flex items-center justify-center"
-        style={{ backgroundColor: `hsl(var(--${color}-color) / 0.2)` }}
-      >
+      <div className={`h-8 w-8 rounded-lg flex items-center justify-center bg-${color}/20`}
+        style={{ backgroundColor: `hsl(var(--${color}-color) / 0.2)` }}>
         <Icon className="h-4 w-4" style={{ color: `hsl(var(--${color}-color))` }} />
       </div>
       <span className="text-sm font-medium">{type}</span>
@@ -137,156 +169,157 @@ function ResourcePaletteItem({ type, onDragStart }: ResourcePaletteItemProps) {
 }
 
 export function VisualCanvas() {
-  const {
-    modelAPIs,
-    mcpServers,
-    agents,
-    canvasNodes,
-    canvasConnections,
-    selectedNodeId,
-    canvasZoom,
-    canvasPan,
-    addCanvasNode,
-    updateCanvasNode,
-    removeCanvasNode,
-    setSelectedNode,
-    addCanvasConnection,
-    setCanvasZoom,
-    setCanvasPan,
-  } = useKubernetesStore();
-
-  const canvasRef = useRef<HTMLDivElement>(null);
-  const [isPanning, setIsPanning] = useState(false);
-  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
-  const [draggedNode, setDraggedNode] = useState<string | null>(null);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [connectingFrom, setConnectingFrom] = useState<{ id: string; handle: string } | null>(null);
-  const [draggedType, setDraggedType] = useState<string | null>(null);
-
-  // Initialize canvas with existing resources
-  useEffect(() => {
-    if (canvasNodes.length === 0) {
-      const allResources = [
-        ...modelAPIs.map((r, i) => ({ type: 'ModelAPI' as const, data: r, x: 100, y: 100 + i * 150 })),
-        ...mcpServers.map((r, i) => ({ type: 'MCPServer' as const, data: r, x: 400, y: 100 + i * 150 })),
-        ...agents.map((r, i) => ({ type: 'Agent' as const, data: r, x: 700, y: 100 + i * 150 })),
-      ];
-
-      allResources.forEach(({ type, data, x, y }) => {
-        addCanvasNode({
-          id: `${type}-${data.metadata.name}`,
-          type,
-          position: { x, y },
-          data: data as AgenticResource,
-        });
-      });
-
-      // Create connections based on agent configurations
-      agents.forEach((agent) => {
-        const agentNodeId = `Agent-${agent.metadata.name}`;
-        
-        // Connect to ModelAPI
-        const modelAPINode = canvasNodes.find(n => n.id === `ModelAPI-${agent.spec.modelAPI}`);
-        if (modelAPINode) {
-          addCanvasConnection({
-            id: `${agentNodeId}-to-${modelAPINode.id}`,
-            sourceId: modelAPINode.id,
-            targetId: agentNodeId,
-          });
-        }
-
-        // Connect to MCP Servers
-        agent.spec.mcpServers?.forEach((mcpName) => {
-          const mcpNodeId = `MCPServer-${mcpName}`;
-          addCanvasConnection({
-            id: `${mcpNodeId}-to-${agentNodeId}`,
-            sourceId: mcpNodeId,
-            targetId: agentNodeId,
-          });
-        });
-      });
-    }
-  }, [modelAPIs, mcpServers, agents]);
-
-  const handleZoom = (delta: number) => {
-    const newZoom = Math.max(0.25, Math.min(2, canvasZoom + delta));
-    setCanvasZoom(newZoom);
-  };
-
-  const handleNodeDragStart = (id: string, e: React.MouseEvent) => {
-    const node = canvasNodes.find(n => n.id === id);
-    if (node) {
-      setDraggedNode(id);
-      setDragOffset({
-        x: e.clientX - node.position.x,
-        y: e.clientY - node.position.y,
-      });
-    }
-  };
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (draggedNode) {
-      updateCanvasNode(draggedNode, {
-        position: {
-          x: (e.clientX - dragOffset.x) / canvasZoom,
-          y: (e.clientY - dragOffset.y) / canvasZoom,
+  const { modelAPIs, mcpServers, agents } = useKubernetesStore();
+  
+  // Convert resources to React Flow nodes
+  const initialNodes = useMemo(() => {
+    const nodes: Node<NodeData>[] = [];
+    
+    // ModelAPIs - left column
+    modelAPIs.forEach((api, index) => {
+      nodes.push({
+        id: `modelapi-${api.metadata.name}`,
+        type: 'modelapi',
+        position: { x: 50, y: 50 + index * 180 },
+        data: {
+          label: api.metadata.name,
+          type: 'ModelAPI',
+          status: api.status?.phase || 'Unknown',
+          mode: api.spec.mode,
+          resource: api,
         },
       });
-    } else if (isPanning) {
-      setCanvasPan({
-        x: canvasPan.x + (e.clientX - panStart.x),
-        y: canvasPan.y + (e.clientY - panStart.y),
-      });
-      setPanStart({ x: e.clientX, y: e.clientY });
-    }
-  }, [draggedNode, dragOffset, isPanning, panStart, canvasZoom, canvasPan]);
-
-  const handleMouseUp = () => {
-    setDraggedNode(null);
-    setIsPanning(false);
-    setConnectingFrom(null);
-  };
-
-  const handleCanvasMouseDown = (e: React.MouseEvent) => {
-    if (e.target === canvasRef.current) {
-      setSelectedNode(null);
-      setIsPanning(true);
-      setPanStart({ x: e.clientX, y: e.clientY });
-    }
-  };
-
-  const handleConnectionStart = (nodeId: string, handle: string) => {
-    setConnectingFrom({ id: nodeId, handle });
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    if (!draggedType) return;
-
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
-
-    const x = (e.clientX - rect.left - canvasPan.x) / canvasZoom;
-    const y = (e.clientY - rect.top - canvasPan.y) / canvasZoom;
-
-    // Create a new resource based on type
-    const newResource = createDefaultResource(draggedType as any);
-    addCanvasNode({
-      id: `${draggedType}-${newResource.metadata.name}`,
-      type: draggedType as any,
-      position: { x, y },
-      data: newResource as AgenticResource,
     });
+    
+    // MCPServers - middle column
+    mcpServers.forEach((server, index) => {
+      nodes.push({
+        id: `mcpserver-${server.metadata.name}`,
+        type: 'mcpserver',
+        position: { x: 350, y: 50 + index * 180 },
+        data: {
+          label: server.metadata.name,
+          type: 'MCPServer',
+          status: server.status?.phase || 'Unknown',
+          mcpType: server.spec.type,
+          tools: server.status?.tools,
+          resource: server,
+        },
+      });
+    });
+    
+    // Agents - right column
+    agents.forEach((agent, index) => {
+      nodes.push({
+        id: `agent-${agent.metadata.name}`,
+        type: 'agent',
+        position: { x: 700, y: 50 + index * 200 },
+        data: {
+          label: agent.metadata.name,
+          type: 'Agent',
+          status: agent.status?.phase || 'Unknown',
+          mcpServers: agent.spec.mcpServers,
+          modelAPI: agent.spec.modelAPI,
+          resource: agent,
+        },
+      });
+    });
+    
+    return nodes;
+  }, [modelAPIs, mcpServers, agents]);
+  
+  // Create edges based on agent connections
+  const initialEdges = useMemo(() => {
+    const edges: Edge[] = [];
+    
+    agents.forEach(agent => {
+      // Connect agent to ModelAPI
+      const modelAPIId = `modelapi-${agent.spec.modelAPI}`;
+      edges.push({
+        id: `edge-${modelAPIId}-agent-${agent.metadata.name}`,
+        source: modelAPIId,
+        target: `agent-${agent.metadata.name}`,
+        animated: true,
+        style: { stroke: 'hsl(var(--modelapi-color))', strokeWidth: 2 },
+      });
+      
+      // Connect agent to MCP Servers
+      agent.spec.mcpServers?.forEach(mcpName => {
+        const mcpId = `mcpserver-${mcpName}`;
+        edges.push({
+          id: `edge-${mcpId}-agent-${agent.metadata.name}`,
+          source: mcpId,
+          target: `agent-${agent.metadata.name}`,
+          animated: true,
+          style: { stroke: 'hsl(var(--mcpserver-color))', strokeWidth: 2 },
+        });
+      });
+    });
+    
+    return edges;
+  }, [agents]);
 
-    setDraggedType(null);
-  };
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
-  const createDefaultResource = (type: 'ModelAPI' | 'MCPServer' | 'Agent'): AgenticResource => {
-    const timestamp = Date.now();
+  // Update nodes when resources change
+  useEffect(() => {
+    setNodes(initialNodes);
+    setEdges(initialEdges);
+  }, [initialNodes, initialEdges, setNodes, setEdges]);
+
+  const onConnect = useCallback(
+    (params: Connection) => setEdges((eds) => addEdge({ ...params, animated: true }, eds)),
+    [setEdges]
+  );
+
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  const onDragStart = useCallback((event: React.DragEvent, nodeType: string) => {
+    event.dataTransfer.setData('application/reactflow', nodeType);
+    event.dataTransfer.effectAllowed = 'move';
+  }, []);
+
+  const onDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+      const type = event.dataTransfer.getData('application/reactflow');
+      if (!type) return;
+
+      const position = {
+        x: event.clientX - 350,
+        y: event.clientY - 100,
+      };
+
+      const timestamp = Date.now();
+      const newName = `new-${type.toLowerCase()}-${timestamp}`;
+      
+      const newNode: Node<NodeData> = {
+        id: `${type.toLowerCase()}-${newName}`,
+        type: type.toLowerCase(),
+        position,
+        data: {
+          label: newName,
+          type: type as 'ModelAPI' | 'MCPServer' | 'Agent',
+          status: 'Pending',
+          resource: createNewResource(type, newName),
+        },
+      };
+
+      setNodes((nds) => nds.concat(newNode));
+    },
+    [setNodes]
+  );
+
+  const createNewResource = (type: string, name: string): ModelAPI | MCPServer | Agent => {
     const baseMeta = {
-      name: `new-${type.toLowerCase()}-${timestamp}`,
+      name,
       namespace: 'agentic-system',
-      uid: `${type}-${timestamp}`,
+      uid: `${type}-${Date.now()}`,
+      creationTimestamp: new Date().toISOString(),
     };
 
     switch (type) {
@@ -306,7 +339,7 @@ export function VisualCanvas() {
           spec: { type: 'python-custom', config: { mcp: 'default', env: [] } },
           status: { phase: 'Pending' },
         };
-      case 'Agent':
+      default:
         return {
           apiVersion: 'agentic.example.com/v1alpha1',
           kind: 'Agent',
@@ -321,57 +354,17 @@ export function VisualCanvas() {
     }
   };
 
-  const renderConnections = () => {
-    return canvasConnections.map((conn) => {
-      const sourceNode = canvasNodes.find(n => n.id === conn.sourceId);
-      const targetNode = canvasNodes.find(n => n.id === conn.targetId);
-      if (!sourceNode || !targetNode) return null;
-
-      const x1 = sourceNode.position.x + 200;
-      const y1 = sourceNode.position.y + 50;
-      const x2 = targetNode.position.x;
-      const y2 = targetNode.position.y + 50;
-
-      const midX = (x1 + x2) / 2;
-
-      return (
-        <path
-          key={conn.id}
-          className="connection-line"
-          d={`M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`}
-        />
-      );
-    });
-  };
-
   return (
     <div className="flex h-full animate-fade-in">
-      {/* Toolbar */}
-      <div className="absolute top-4 left-4 z-10 flex items-center gap-2 bg-card/90 backdrop-blur-sm rounded-lg border border-border p-2">
-        <Button variant="toolbar" size="xs" onClick={() => handleZoom(0.1)}>
-          <ZoomIn className="h-4 w-4" />
-        </Button>
-        <span className="text-xs text-muted-foreground w-12 text-center">
-          {Math.round(canvasZoom * 100)}%
-        </span>
-        <Button variant="toolbar" size="xs" onClick={() => handleZoom(-0.1)}>
-          <ZoomOut className="h-4 w-4" />
-        </Button>
-        <div className="w-px h-6 bg-border" />
-        <Button variant="toolbar" size="xs" onClick={() => setCanvasZoom(1)}>
-          <Maximize2 className="h-4 w-4" />
-        </Button>
-      </div>
-
       {/* Resource Palette */}
-      <div className="w-64 bg-card border-r border-border p-4 space-y-4">
+      <div className="w-64 bg-card border-r border-border p-4 space-y-4 flex-shrink-0">
         <div>
           <h3 className="text-sm font-semibold text-foreground mb-3">Resources</h3>
           <p className="text-xs text-muted-foreground mb-4">Drag to add to canvas</p>
           <div className="space-y-2">
-            <ResourcePaletteItem type="ModelAPI" onDragStart={setDraggedType} />
-            <ResourcePaletteItem type="MCPServer" onDragStart={setDraggedType} />
-            <ResourcePaletteItem type="Agent" onDragStart={setDraggedType} />
+            <PaletteItem type="ModelAPI" icon={Box} color="modelapi" onDragStart={onDragStart} />
+            <PaletteItem type="MCPServer" icon={Server} color="mcpserver" onDragStart={onDragStart} />
+            <PaletteItem type="Agent" icon={Bot} color="agent" onDragStart={onDragStart} />
           </div>
         </div>
 
@@ -389,91 +382,63 @@ export function VisualCanvas() {
           </div>
         </div>
 
-        {/* Selected Node Info */}
-        {selectedNodeId && (
-          <div className="border-t border-border pt-4">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Selected Resource</h3>
-            {(() => {
-              const node = canvasNodes.find(n => n.id === selectedNodeId);
-              if (!node) return null;
-              return (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">{node.data.metadata.name}</p>
-                  <p className="text-xs text-muted-foreground">{node.type}</p>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="xs" className="flex-1 gap-1">
-                      <Settings className="h-3 w-3" />
-                      Edit
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="xs"
-                      onClick={() => removeCanvasNode(selectedNodeId)}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-        )}
-      </div>
-
-      {/* Canvas */}
-      <div
-        ref={canvasRef}
-        className="flex-1 bg-canvas-bg canvas-grid relative overflow-hidden cursor-grab active:cursor-grabbing"
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onMouseDown={handleCanvasMouseDown}
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={handleDrop}
-      >
-        <svg
-          className="absolute inset-0 w-full h-full pointer-events-none"
-          style={{
-            transform: `translate(${canvasPan.x}px, ${canvasPan.y}px) scale(${canvasZoom})`,
-            transformOrigin: '0 0',
-          }}
-        >
-          {renderConnections()}
-        </svg>
-
-        <div
-          style={{
-            transform: `translate(${canvasPan.x}px, ${canvasPan.y}px) scale(${canvasZoom})`,
-            transformOrigin: '0 0',
-          }}
-        >
-          {canvasNodes.map((node) => (
-            <CanvasNodeComponent
-              key={node.id}
-              node={node}
-              isSelected={node.id === selectedNodeId}
-              onSelect={setSelectedNode}
-              onDragStart={handleNodeDragStart}
-              onConnectionStart={handleConnectionStart}
-              zoom={canvasZoom}
-            />
-          ))}
-        </div>
-
-        {/* Empty state */}
-        {canvasNodes.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center">
-              <div className="h-16 w-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
-                <Plus className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <p className="text-lg font-medium text-foreground mb-2">Start Building</p>
-              <p className="text-sm text-muted-foreground">
-                Drag resources from the left panel to create your agentic system
-              </p>
+        <div className="border-t border-border pt-4">
+          <h3 className="text-sm font-semibold text-foreground mb-3">Legend</h3>
+          <div className="space-y-2 text-xs">
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-3 rounded-full bg-success" />
+              <span className="text-muted-foreground">Running</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-3 rounded-full bg-warning" />
+              <span className="text-muted-foreground">Pending</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-3 rounded-full bg-destructive" />
+              <span className="text-muted-foreground">Error</span>
             </div>
           </div>
-        )}
+        </div>
+      </div>
+
+      {/* React Flow Canvas */}
+      <div className="flex-1 h-full">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onDrop={onDrop}
+          onDragOver={onDragOver}
+          nodeTypes={nodeTypes}
+          fitView
+          className="bg-canvas-bg"
+          defaultEdgeOptions={{
+            animated: true,
+            style: { strokeWidth: 2 },
+          }}
+        >
+          <Controls className="bg-card border border-border rounded-lg" />
+          <MiniMap 
+            className="bg-card border border-border rounded-lg"
+            nodeColor={(node) => {
+              switch (node.type) {
+                case 'modelapi': return 'hsl(var(--modelapi-color))';
+                case 'mcpserver': return 'hsl(var(--mcpserver-color))';
+                case 'agent': return 'hsl(var(--agent-color))';
+                default: return 'hsl(var(--muted))';
+              }
+            }}
+          />
+          <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="hsl(var(--border))" />
+          
+          <Panel position="top-right" className="space-y-2">
+            <Badge variant="secondary" className="text-xs">
+              {nodes.length} nodes • {edges.length} connections
+            </Badge>
+          </Panel>
+        </ReactFlow>
       </div>
     </div>
   );

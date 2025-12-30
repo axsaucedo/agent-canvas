@@ -68,7 +68,7 @@ export function MCPServerList() {
       columns={columns}
       icon={Server}
       iconColor="mcpserver-color"
-      onAdd={() => setActiveTab('canvas')}
+      onAdd={() => setActiveTab('visual-editor')}
       onView={(item) => setSelectedResource(item)}
       onEdit={(item) => setSelectedResource(item)}
       onDelete={(item) => deleteMCPServer(item.metadata.name)}
