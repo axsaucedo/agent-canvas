@@ -313,28 +313,37 @@ export function ConnectionDiagnostics() {
         )}
 
         {needsCorsHeaders && (
-          <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 space-y-2">
-            <h4 className="font-medium text-amber-600 flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4" />
-              CORS Preflight Issue
+          <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/30 space-y-3">
+            <h4 className="font-medium text-red-600 flex items-center gap-2">
+              <XCircle className="h-4 w-4" />
+              CORS Preflight Failure - Root Cause
             </h4>
             <p className="text-sm text-muted-foreground">
-              The <code className="bg-muted px-1 rounded">ngrok-skip-browser-warning</code> header triggers 
-              a CORS preflight. For this to work, ngrok needs to respond with:
+              The browser sends an <code className="bg-muted px-1 rounded">OPTIONS</code> preflight request before the actual request.
+              <code className="bg-muted px-1 rounded">kubectl proxy</code> returns <strong>405 Method Not Allowed</strong> for OPTIONS.
             </p>
-            <pre className="bg-muted p-2 rounded text-xs overflow-x-auto">
-{`Access-Control-Allow-Origin: *
-Access-Control-Allow-Headers: ngrok-skip-browser-warning`}
-            </pre>
-            <p className="text-sm text-muted-foreground mt-2">
-              Try running ngrok with:
+            <p className="text-sm text-muted-foreground">
+              ngrok's <code className="bg-muted px-1 rounded">--response-header-add</code> adds CORS headers to the 405 response, 
+              but the browser still rejects it because:
             </p>
-            <pre className="bg-muted p-2 rounded text-xs overflow-x-auto">
-{`ngrok http 8001 \\
-  --response-header-add="Access-Control-Allow-Origin:*" \\
-  --response-header-add="Access-Control-Allow-Headers:*" \\
-  --response-header-add="Access-Control-Allow-Methods:*"`}
-            </pre>
+            <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
+              <li>Preflight must return status 200 or 204, not 405</li>
+              <li>kubectl proxy doesn't handle OPTIONS requests</li>
+            </ul>
+            
+            <div className="border-t border-red-500/20 pt-3 mt-3">
+              <h5 className="font-medium text-foreground mb-2">Solutions:</h5>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <div className="flex items-start gap-2">
+                  <span className="bg-green-600 text-white px-2 py-0.5 rounded text-xs font-medium">Recommended</span>
+                  <span><strong>Edge Function Proxy</strong> - Enable Lovable Cloud to create a server-side proxy. No CORS issues since it's server-to-server.</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="bg-muted px-2 py-0.5 rounded text-xs">Alternative</span>
+                  <span><strong>Local CORS Proxy</strong> - Run nginx or <code className="bg-muted px-1 rounded">npx local-cors-proxy</code> in front of kubectl proxy to handle OPTIONS.</span>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </CardContent>
