@@ -53,13 +53,27 @@ class KubernetesClient {
 
     const url = `${this.config.baseUrl}${path}`;
     
+    // Use minimal headers to avoid triggering CORS preflight
+    // "Simple requests" don't trigger preflight: 
+    // - Only GET/HEAD/POST methods
+    // - Only Accept, Accept-Language, Content-Language headers
+    // - Content-Type only if: text/plain, multipart/form-data, application/x-www-form-urlencoded
+    // Custom headers like ngrok-skip-browser-warning WILL trigger preflight
+    const headers: HeadersInit = {};
+    
+    // For POST/PUT/PATCH with body, we need Content-Type but this triggers preflight
+    if (options.body) {
+      headers['Content-Type'] = 'application/json';
+    }
+    
+    // Add ngrok skip header - this WILL trigger preflight, but ngrok should handle it
+    // if configured with --response-header-add for CORS
+    headers['ngrok-skip-browser-warning'] = '1';
+    
     const response = await fetch(url, {
       ...options,
       headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        // Skip ngrok browser warning
-        'ngrok-skip-browser-warning': 'true',
+        ...headers,
         ...options.headers,
       },
     });
@@ -72,11 +86,39 @@ class KubernetesClient {
     return response.json();
   }
 
-  // Test connection
-  async testConnection(): Promise<{ success: boolean; version?: string; error?: string }> {
+  // Simple request without custom headers (avoids preflight)
+  private async simpleRequest<T>(path: string): Promise<T> {
+    if (!this.config.baseUrl) {
+      throw new Error('Kubernetes API not configured. Please set the base URL.');
+    }
+
+    const url = `${this.config.baseUrl}${path}`;
+    
+    // No custom headers = no preflight request
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`K8s API error ${response.status}: ${errorText}`);
+    }
+
+    return response.json();
+  }
+
+  // Test connection - try simple request first (no preflight), then with headers
+  async testConnection(): Promise<{ success: boolean; version?: string; error?: string; method?: string }> {
+    // First try simple request (no custom headers = no preflight)
+    try {
+      const result = await this.simpleRequest<{ gitVersion: string }>('/version');
+      return { success: true, version: result.gitVersion, method: 'simple' };
+    } catch (simpleError) {
+      console.log('Simple request failed, trying with headers:', simpleError);
+    }
+
+    // Then try with ngrok header (triggers preflight, needs CORS support)
     try {
       const result = await this.request<{ gitVersion: string }>('/version');
-      return { success: true, version: result.gitVersion };
+      return { success: true, version: result.gitVersion, method: 'with-headers' };
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
