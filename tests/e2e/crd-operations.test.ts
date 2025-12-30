@@ -16,7 +16,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 // Configuration
 const BASE_URL = process.env.K8S_BASE_URL || 'http://localhost:8001';
 const NAMESPACE = process.env.K8S_NAMESPACE || 'test';
-const CRD_API_GROUP = 'agentic.example.com';
+const CRD_API_GROUP = 'ethical.institute';
 const CRD_API_VERSION = 'v1alpha1';
 
 // Test resource names (prefixed to avoid conflicts)

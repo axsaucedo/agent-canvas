@@ -124,7 +124,7 @@ class KubernetesClient {
   }
 
   // ============= CRD API Group Configuration =============
-  private readonly agenticApiGroup = 'agentic.example.com';
+  private readonly agenticApiGroup = 'ethical.institute';
   private readonly agenticApiVersion = 'v1alpha1';
 
   private getCrdPath(resource: string, namespace?: string, name?: string): string {

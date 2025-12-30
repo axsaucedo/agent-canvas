@@ -84,15 +84,15 @@ function MCPServerNode({ data, selected }: { data: NodeData; selected: boolean }
         </Badge>
       </div>
       <div className="space-y-1 text-xs text-muted-foreground">
-        <p>Type: <span className="text-foreground">{resource.spec.type}</span></p>
-        <p>MCP: <span className="text-foreground font-mono">{resource.spec.config.mcp}</span></p>
-        {resource.status?.tools && resource.status.tools.length > 0 && (
+        {resource.spec.type && <p>Type: <span className="text-foreground">{resource.spec.type}</span></p>}
+        <p>MCP: <span className="text-foreground font-mono">{resource.spec.config?.mcp}</span></p>
+        {resource.status?.availableTools && resource.status.availableTools.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
-            {resource.status.tools.slice(0, 3).map(tool => (
+            {resource.status.availableTools.slice(0, 3).map(tool => (
               <Badge key={tool} variant="outline" className="text-[9px]">{tool}</Badge>
             ))}
-            {resource.status.tools.length > 3 && (
-              <Badge variant="outline" className="text-[9px]">+{resource.status.tools.length - 3}</Badge>
+            {resource.status.availableTools.length > 3 && (
+              <Badge variant="outline" className="text-[9px]">+{resource.status.availableTools.length - 3}</Badge>
             )}
           </div>
         )}
@@ -202,7 +202,7 @@ export function VisualCanvas() {
           type: 'MCPServer',
           status: server.status?.phase || 'Unknown',
           mcpType: server.spec.type,
-          tools: server.status?.tools,
+          tools: server.status?.availableTools,
           resource: server,
         },
       });
@@ -317,7 +317,7 @@ export function VisualCanvas() {
   const createNewResource = (type: string, name: string): ModelAPI | MCPServer | Agent => {
     const baseMeta = {
       name,
-      namespace: 'agentic-system',
+      namespace: 'test',
       uid: `${type}-${Date.now()}`,
       creationTimestamp: new Date().toISOString(),
     };
@@ -325,7 +325,7 @@ export function VisualCanvas() {
     switch (type) {
       case 'ModelAPI':
         return {
-          apiVersion: 'agentic.example.com/v1alpha1',
+          apiVersion: 'ethical.institute/v1alpha1',
           kind: 'ModelAPI',
           metadata: baseMeta,
           spec: { mode: 'Proxy', proxyConfig: { env: [] } },
@@ -333,15 +333,15 @@ export function VisualCanvas() {
         };
       case 'MCPServer':
         return {
-          apiVersion: 'agentic.example.com/v1alpha1',
+          apiVersion: 'ethical.institute/v1alpha1',
           kind: 'MCPServer',
           metadata: baseMeta,
-          spec: { type: 'python-custom', config: { mcp: 'default', env: [] } },
+          spec: { type: 'python-runtime', config: { mcp: 'mcp-server-calculator', env: [] } },
           status: { phase: 'Pending' },
         };
       default:
         return {
-          apiVersion: 'agentic.example.com/v1alpha1',
+          apiVersion: 'ethical.institute/v1alpha1',
           kind: 'Agent',
           metadata: baseMeta,
           spec: {

@@ -58,7 +58,7 @@ export interface ModelAPI {
 }
 
 // MCPServer CRD
-export type MCPServerType = 'uvx' | 'npx' | 'python-custom';
+export type MCPServerType = 'python-runtime' | 'node-runtime';
 
 export interface MCPServerConfig {
   mcp: string;
@@ -76,8 +76,10 @@ export interface MCPServer {
   metadata: ResourceMetadata;
   spec: MCPServerSpec;
   status?: {
-    phase: ResourceStatus;
-    tools?: string[];
+    phase: string;
+    ready?: boolean;
+    endpoint?: string;
+    availableTools?: string[];
     message?: string;
   };
 }
