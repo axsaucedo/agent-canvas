@@ -80,7 +80,7 @@ export function AgentList() {
       columns={columns}
       icon={Bot}
       iconColor="agent-color"
-      onAdd={() => setActiveTab('canvas')}
+      onAdd={() => setActiveTab('visual-editor')}
       onView={(item) => setSelectedResource(item)}
       onEdit={(item) => setSelectedResource(item)}
       onDelete={(item) => deleteAgent(item.metadata.name)}

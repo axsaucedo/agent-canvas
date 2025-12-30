@@ -63,7 +63,7 @@ export function ModelAPIList() {
       columns={columns}
       icon={Box}
       iconColor="modelapi-color"
-      onAdd={() => setActiveTab('canvas')}
+      onAdd={() => setActiveTab('visual-editor')}
       onView={(item) => setSelectedResource(item)}
       onEdit={(item) => setSelectedResource(item)}
       onDelete={(item) => deleteModelAPI(item.metadata.name)}

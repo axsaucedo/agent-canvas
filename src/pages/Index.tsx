@@ -84,9 +84,9 @@ const Index = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'overview': return <OverviewDashboard />;
-      case 'canvas': return <VisualCanvas />;
-      case 'modelapis': return <ModelAPIList />;
-      case 'mcpservers': return <MCPServerList />;
+      case 'visual-editor': return <VisualCanvas />;
+      case 'model-apis': return <ModelAPIList />;
+      case 'mcp-servers': return <MCPServerList />;
       case 'agents': return <AgentList />;
       case 'pods': return <PodsList />;
       case 'deployments': return <DeploymentsList />;
