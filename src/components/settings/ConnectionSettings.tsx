@@ -9,6 +9,7 @@ import { Loader2, CheckCircle, XCircle, RefreshCw, Wifi, WifiOff } from 'lucide-
 import { k8sClient } from '@/lib/kubernetes-client';
 import { useToast } from '@/hooks/use-toast';
 import { ConnectionDiagnostics } from './ConnectionDiagnostics';
+import { CRUDTestPanel } from './CRUDTestPanel';
 import { useKubernetesConnection } from '@/contexts/KubernetesConnectionContext';
 
 export function ConnectionSettings() {
@@ -254,6 +255,9 @@ export function ConnectionSettings() {
 
       {/* Diagnostics Card */}
       <ConnectionDiagnostics />
+
+      {/* CRUD Test Panel */}
+      <CRUDTestPanel />
 
       {/* Instructions Card */}
       <Card>
