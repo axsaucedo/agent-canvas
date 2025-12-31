@@ -74,6 +74,7 @@ class KubernetesClient {
     }
     
     headers['ngrok-skip-browser-warning'] = '1';
+    headers['bypass-tunnel-reminder'] = '1';
     
     const response = await fetch(url, {
       ...options,
@@ -294,7 +295,10 @@ class KubernetesClient {
     const path = `/api/v1/namespaces/${ns}/pods/${name}/log${queryString ? '?' + queryString : ''}`;
     
     const response = await fetch(`${this.config.baseUrl}${path}`, {
-      headers: { 'ngrok-skip-browser-warning': 'true' },
+      headers: { 
+        'ngrok-skip-browser-warning': 'true',
+        'bypass-tunnel-reminder': 'true',
+      },
     });
     
     if (!response.ok) {
@@ -482,6 +486,7 @@ class KubernetesClient {
       headers: {
         'Content-Type': 'application/json',
         'ngrok-skip-browser-warning': '1',
+        'bypass-tunnel-reminder': '1',
         ...options.headers,
       },
     });
