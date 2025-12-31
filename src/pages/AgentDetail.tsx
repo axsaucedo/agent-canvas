@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Bot, Edit, Trash2, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Bot, Edit, Trash2, RefreshCw, Box } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -21,6 +21,7 @@ import { useKubernetesConnection } from '@/contexts/KubernetesConnectionContext'
 import { AgentChat } from '@/components/agent/AgentChat';
 import { AgentOverview } from '@/components/agent/AgentOverview';
 import { AgentMemory } from '@/components/agent/AgentMemory';
+import { AgentPods } from '@/components/agent/AgentPods';
 import { AgentEditDialog } from '@/components/resources/AgentEditDialog';
 import type { Agent } from '@/types/kubernetes';
 import type { ChatMessage } from '@/hooks/useAgentChat';
@@ -193,10 +194,14 @@ export default function AgentDetail() {
       {/* Content */}
       <main className="container px-4 py-6">
         <Tabs defaultValue="chat" className="space-y-6">
-          <TabsList className="grid w-full max-w-lg grid-cols-3">
+          <TabsList className="grid w-full max-w-2xl grid-cols-4">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="chat">Chat</TabsTrigger>
             <TabsTrigger value="memory">Memory</TabsTrigger>
+            <TabsTrigger value="pods" className="flex items-center gap-1">
+              <Box className="h-3 w-3" />
+              Pods
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -216,6 +221,10 @@ export default function AgentDetail() {
 
           <TabsContent value="memory" className="space-y-6">
             <AgentMemory agent={agent} />
+          </TabsContent>
+
+          <TabsContent value="pods" className="space-y-6">
+            <AgentPods agent={agent} />
           </TabsContent>
         </Tabs>
       </main>
