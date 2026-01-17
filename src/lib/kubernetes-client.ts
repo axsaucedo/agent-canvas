@@ -668,18 +668,16 @@ class KubernetesClient {
 
   /**
    * List available tools from an MCP server via K8s service proxy
-   * Follows MCP Streamable HTTP protocol: initialize → initialized notification → request
+   * Tries stateless mode first (direct request), falls back to session-based if needed
    */
   async listMCPTools(
     serviceName: string,
     namespace?: string,
     port: number = 8000
   ): Promise<{ tools: MCPTool[] }> {
-    // Step 1: Initialize session (handles both stateful and stateless servers)
-    console.log(`[k8sClient] Initializing MCP connection for tools/list to ${serviceName}`);
-    const sessionId = await this.initializeMCPSession(serviceName, namespace, port);
+    // First, try stateless mode (direct tools/list without initialization)
+    console.log(`[k8sClient] Trying stateless tools/list for ${serviceName}`);
     
-    // Step 2: Make the tools/list request
     const jsonRpcRequest = {
       jsonrpc: '2.0',
       id: Date.now(),
@@ -687,12 +685,58 @@ class KubernetesClient {
       params: {},
     };
     
-    console.log(`[k8sClient] Sending JSON-RPC tools/list to ${serviceName}:`, jsonRpcRequest);
-    
-    const headers: Record<string, string> = {};
-    if (sessionId) {
-      headers['Mcp-Session-Id'] = sessionId;
+    try {
+      const directResponse = await this.proxyServiceRequest(
+        serviceName,
+        '/mcp',
+        {
+          method: 'POST',
+          body: JSON.stringify(jsonRpcRequest),
+        },
+        namespace,
+        port
+      );
+      
+      if (directResponse.ok) {
+        const jsonRpcResponse = await this.parseMCPResponse(directResponse) as { error?: { message?: string; code?: number }; result?: { tools?: MCPTool[] } } | null;
+        console.log(`[k8sClient] Stateless tools/list response:`, jsonRpcResponse);
+        
+        // Check if we got tools (stateless mode works)
+        if (jsonRpcResponse?.result?.tools) {
+          console.log(`[k8sClient] Stateless mode successful, found ${jsonRpcResponse.result.tools.length} tools`);
+          return { tools: jsonRpcResponse.result.tools };
+        }
+        
+        // Check for session-required error
+        if (jsonRpcResponse?.error) {
+          const errorMsg = jsonRpcResponse.error.message || '';
+          if (errorMsg.includes('session') || errorMsg.includes('Session') || jsonRpcResponse.error.code === -32600) {
+            console.log(`[k8sClient] Server requires session, falling back to session-based mode`);
+            // Fall through to session-based mode
+          } else {
+            throw new Error(`MCP JSON-RPC error: ${errorMsg}`);
+          }
+        }
+      }
+    } catch (error) {
+      console.log(`[k8sClient] Stateless mode failed, trying session-based:`, error);
+      // Continue to session-based mode
     }
+    
+    // Session-based mode: Initialize → Notification → Request
+    console.log(`[k8sClient] Initializing MCP session for tools/list to ${serviceName}`);
+    const sessionId = await this.initializeMCPSession(serviceName, namespace, port);
+    
+    if (!sessionId) {
+      throw new Error('MCP server did not return a session ID. Check if the server supports the streamable HTTP transport.');
+    }
+    
+    // Make the tools/list request with session
+    console.log(`[k8sClient] Sending session-based JSON-RPC tools/list to ${serviceName}`);
+    
+    const headers: Record<string, string> = {
+      'Mcp-Session-Id': sessionId,
+    };
     
     const response = await this.proxyServiceRequest(
       serviceName,
@@ -730,7 +774,7 @@ class KubernetesClient {
 
   /**
    * Call a tool on an MCP server via K8s service proxy
-   * Follows MCP Streamable HTTP protocol: initialize → initialized notification → request
+   * Tries stateless mode first, falls back to session-based if needed
    */
   async callMCPTool(
     serviceName: string,
@@ -739,11 +783,9 @@ class KubernetesClient {
     namespace?: string,
     port: number = 8000
   ): Promise<MCPToolCallResult> {
-    // Step 1: Initialize session (handles both stateful and stateless servers)
-    console.log(`[k8sClient] Initializing MCP connection for tools/call to ${serviceName}`);
-    const sessionId = await this.initializeMCPSession(serviceName, namespace, port);
+    // First, try stateless mode (direct tools/call without initialization)
+    console.log(`[k8sClient] Trying stateless tools/call for ${serviceName}`);
     
-    // Step 2: Make the tools/call request
     const jsonRpcRequest = {
       jsonrpc: '2.0',
       id: Date.now(),
@@ -754,12 +796,55 @@ class KubernetesClient {
       },
     };
     
-    console.log(`[k8sClient] Sending JSON-RPC tools/call to ${serviceName}:`, jsonRpcRequest);
-    
-    const headers: Record<string, string> = {};
-    if (sessionId) {
-      headers['Mcp-Session-Id'] = sessionId;
+    try {
+      const directResponse = await this.proxyServiceRequest(
+        serviceName,
+        '/mcp',
+        {
+          method: 'POST',
+          body: JSON.stringify(jsonRpcRequest),
+        },
+        namespace,
+        port
+      );
+      
+      if (directResponse.ok) {
+        const jsonRpcResponse = await this.parseMCPResponse(directResponse) as { error?: { message?: string; code?: number }; result?: unknown } | null;
+        console.log(`[k8sClient] Stateless tools/call response:`, jsonRpcResponse);
+        
+        // Check for session-required error
+        if (jsonRpcResponse?.error) {
+          const errorMsg = jsonRpcResponse.error.message || '';
+          if (errorMsg.includes('session') || errorMsg.includes('Session') || jsonRpcResponse.error.code === -32600) {
+            console.log(`[k8sClient] Server requires session, falling back to session-based mode`);
+            // Fall through to session-based mode
+          } else {
+            throw new Error(`MCP JSON-RPC error: ${errorMsg}`);
+          }
+        } else if (jsonRpcResponse?.result !== undefined) {
+          console.log(`[k8sClient] Stateless mode successful`);
+          return jsonRpcResponse.result as MCPToolCallResult;
+        }
+      }
+    } catch (error) {
+      console.log(`[k8sClient] Stateless mode failed, trying session-based:`, error);
+      // Continue to session-based mode
     }
+    
+    // Session-based mode: Initialize → Notification → Request
+    console.log(`[k8sClient] Initializing MCP session for tools/call to ${serviceName}`);
+    const sessionId = await this.initializeMCPSession(serviceName, namespace, port);
+    
+    if (!sessionId) {
+      throw new Error('MCP server did not return a session ID. Check if the server supports the streamable HTTP transport.');
+    }
+    
+    // Make the tools/call request with session
+    console.log(`[k8sClient] Sending session-based JSON-RPC tools/call to ${serviceName}`);
+    
+    const headers: Record<string, string> = {
+      'Mcp-Session-Id': sessionId,
+    };
     
     const response = await this.proxyServiceRequest(
       serviceName,
