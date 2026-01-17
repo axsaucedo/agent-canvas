@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Server } from 'lucide-react';
 import { ResourceList } from '@/components/resources/ResourceList';
 import { MCPServerCreateDialog } from '@/components/resources/MCPServerCreateDialog';
@@ -8,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import type { MCPServer } from '@/types/kubernetes';
 
 export function MCPServerList() {
+  const navigate = useNavigate();
   const { mcpServers, setSelectedResource, setSelectedResourceMode } = useKubernetesStore();
   const { deleteMCPServer } = useKubernetesConnection();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -65,8 +67,8 @@ export function MCPServerList() {
   ];
 
   const handleView = (item: MCPServer) => {
-    setSelectedResource(item);
-    setSelectedResourceMode('view');
+    const ns = item.metadata.namespace || 'default';
+    navigate(`/mcpservers/${ns}/${item.metadata.name}`);
   };
 
   const handleEdit = (item: MCPServer) => {
