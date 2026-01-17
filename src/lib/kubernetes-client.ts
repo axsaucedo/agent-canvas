@@ -17,6 +17,8 @@ import type {
   SecretRef,
 } from '@/types/kubernetes';
 
+import type { MCPTool, MCPToolCallResult } from '@/types/mcp';
+
 export interface K8sClientConfig {
   baseUrl: string;
   namespace: string;
@@ -446,6 +448,109 @@ class KubernetesClient {
   async listNamespaces(): Promise<{ metadata: { name: string } }[]> {
     const response = await this.request<K8sListResponse<{ metadata: { name: string } }>>('/api/v1/namespaces');
     return response.items;
+  }
+
+  // ============= MCP Server Tools Operations =============
+  
+  /**
+   * List available tools from an MCP server
+   * Uses GET /mcp/tools endpoint
+   */
+  async listMCPTools(
+    serviceName: string,
+    namespace?: string,
+    port: number = 8000
+  ): Promise<{ tools: MCPTool[] }> {
+    const response = await this.proxyServiceRequest(
+      serviceName,
+      '/mcp/tools',
+      { method: 'GET' },
+      namespace,
+      port
+    );
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`MCP tools list error ${response.status}: ${errorText}`);
+    }
+    
+    return response.json();
+  }
+
+  /**
+   * Call a tool on an MCP server
+   * Uses POST /mcp/tools endpoint with { name, args }
+   */
+  async callMCPTool(
+    serviceName: string,
+    toolName: string,
+    args: Record<string, unknown>,
+    namespace?: string,
+    port: number = 8000
+  ): Promise<MCPToolCallResult> {
+    const response = await this.proxyServiceRequest(
+      serviceName,
+      '/mcp/tools',
+      {
+        method: 'POST',
+        body: JSON.stringify({ name: toolName, args }),
+      },
+      namespace,
+      port
+    );
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`MCP tool call error ${response.status}: ${errorText}`);
+    }
+    
+    return response.json();
+  }
+
+  /**
+   * Get MCP server health status
+   */
+  async getMCPHealth(
+    serviceName: string,
+    namespace?: string,
+    port: number = 8000
+  ): Promise<{ status: string }> {
+    const response = await this.proxyServiceRequest(
+      serviceName,
+      '/health',
+      { method: 'GET' },
+      namespace,
+      port
+    );
+    
+    if (!response.ok) {
+      throw new Error(`MCP health check failed: ${response.status}`);
+    }
+    
+    return response.json();
+  }
+
+  /**
+   * Get MCP server readiness with tool list
+   */
+  async getMCPReady(
+    serviceName: string,
+    namespace?: string,
+    port: number = 8000
+  ): Promise<{ ready: boolean; tools?: string[] }> {
+    const response = await this.proxyServiceRequest(
+      serviceName,
+      '/ready',
+      { method: 'GET' },
+      namespace,
+      port
+    );
+    
+    if (!response.ok) {
+      throw new Error(`MCP ready check failed: ${response.status}`);
+    }
+    
+    return response.json();
   }
 
   async createNamespace(name: string): Promise<{ metadata: { name: string } }> {
