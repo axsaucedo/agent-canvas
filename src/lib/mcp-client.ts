@@ -28,13 +28,24 @@ interface MCPSession {
 
 /**
  * Parse SSE response to extract JSON data
- * SSE format: "event: message\ndata: {...}\n\n"
+ * SSE format can be: "data: {...}" or "event: message\ndata: {...}"
+ * Handle both "data: " (with space) and "data:" (without space)
  */
 function parseSSEResponse(text: string): unknown {
   const lines = text.split('\n');
   for (const line of lines) {
+    // Handle both "data: " and "data:" formats
     if (line.startsWith('data: ')) {
       const data = line.slice(6).trim();
+      if (data && data !== '[DONE]') {
+        try {
+          return JSON.parse(data);
+        } catch {
+          // Continue to next line
+        }
+      }
+    } else if (line.startsWith('data:') && !line.startsWith('data: ')) {
+      const data = line.slice(5).trim();
       if (data && data !== '[DONE]') {
         try {
           return JSON.parse(data);
@@ -123,12 +134,14 @@ export class MCPClient {
       body: JSON.stringify(body),
     });
 
-    // Extract session ID from response headers (lowercase!)
-    const newSessionId = response.headers.get('mcp-session-id');
+    // Extract session ID from response headers
+    // Browser normalizes header names to lowercase, so use lowercase
+    // Also check for both 'mcp-session-id' and 'Mcp-Session-Id' just in case
+    const newSessionId = response.headers.get('mcp-session-id') || response.headers.get('Mcp-Session-Id');
     
     console.log(`[MCPClient] Response status: ${response.status}`);
     console.log(`[MCPClient] New Session ID from header: ${newSessionId}`);
-    console.log(`[MCPClient] Response headers:`, Object.fromEntries(response.headers.entries()));
+    console.log(`[MCPClient] All response headers:`, Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       const errorText = await response.text();
