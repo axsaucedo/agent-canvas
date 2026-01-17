@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Server, Edit, Trash2, RefreshCw, Wrench, Info, Boxes } from 'lucide-react';
+import { ArrowLeft, Server, Edit, Trash2, RefreshCw, Wrench, Info, Boxes, Stethoscope } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -21,6 +21,7 @@ import { useKubernetesConnection } from '@/contexts/KubernetesConnectionContext'
 import { MCPToolsDebug } from '@/components/mcp/MCPToolsDebug';
 import { MCPServerOverview } from '@/components/mcp/MCPServerOverview';
 import { MCPServerPods } from '@/components/mcp/MCPServerPods';
+import { MCPConnectionDiagnostics } from '@/components/mcp/MCPConnectionDiagnostics';
 import { MCPServerEditDialog } from '@/components/resources/MCPServerEditDialog';
 import type { MCPServer } from '@/types/kubernetes';
 
@@ -192,7 +193,7 @@ export default function MCPServerDetail() {
       {/* Content */}
       <main className="container px-4 py-6">
         <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-lg grid-cols-3">
+          <TabsList className="grid w-full max-w-xl grid-cols-4">
             <TabsTrigger value="overview" className="flex items-center gap-1">
               <Info className="h-3 w-3" />
               Overview
@@ -200,6 +201,10 @@ export default function MCPServerDetail() {
             <TabsTrigger value="tools" className="flex items-center gap-1">
               <Wrench className="h-3 w-3" />
               Tools Debug
+            </TabsTrigger>
+            <TabsTrigger value="diagnose" className="flex items-center gap-1">
+              <Stethoscope className="h-3 w-3" />
+              Diagnose
             </TabsTrigger>
             <TabsTrigger value="pods" className="flex items-center gap-1">
               <Boxes className="h-3 w-3" />
@@ -213,6 +218,13 @@ export default function MCPServerDetail() {
 
           <TabsContent value="tools" className="h-[calc(100vh-240px)]">
             <MCPToolsDebug mcpServer={mcpServer} />
+          </TabsContent>
+
+          <TabsContent value="diagnose" className="h-[calc(100vh-240px)]">
+            <MCPConnectionDiagnostics 
+              mcpServer={mcpServer} 
+              onSuccess={() => setCurrentTab('tools')}
+            />
           </TabsContent>
 
           <TabsContent value="pods" className="space-y-6">
