@@ -203,16 +203,25 @@ export function MCPConnectionDiagnostics({ mcpServer, onSuccess }: MCPConnection
       });
       
       const duration = Date.now() - startTime;
-      sessionId = response.headers.get('Mcp-Session-Id');
+      // Browser normalizes header names to lowercase
+      sessionId = response.headers.get('mcp-session-id');
       
       const body = await response.text();
       let parsedBody: unknown;
       try {
-        // Handle SSE format
+        // Handle SSE format - check for both "data: " (with space) and "data:" (without)
         if (body.includes('data:')) {
           const lines = body.split('\n');
           for (const line of lines) {
-            if (line.startsWith('data:')) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6).trim();
+              if (data && data !== '[DONE]') {
+                try {
+                  parsedBody = JSON.parse(data);
+                  break;
+                } catch { /* continue */ }
+              }
+            } else if (line.startsWith('data:')) {
               const data = line.slice(5).trim();
               if (data && data !== '[DONE]') {
                 try {
@@ -325,11 +334,19 @@ export function MCPConnectionDiagnostics({ mcpServer, onSuccess }: MCPConnection
       let tools: unknown[] | undefined;
       
       try {
-        // Handle SSE format
+        // Handle SSE format - check for both "data: " (with space) and "data:" (without)
         if (body.includes('data:')) {
           const lines = body.split('\n');
           for (const line of lines) {
-            if (line.startsWith('data:')) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6).trim();
+              if (data && data !== '[DONE]') {
+                try {
+                  parsedBody = JSON.parse(data);
+                  break;
+                } catch { /* continue */ }
+              }
+            } else if (line.startsWith('data:')) {
               const data = line.slice(5).trim();
               if (data && data !== '[DONE]') {
                 try {
@@ -398,11 +415,19 @@ export function MCPConnectionDiagnostics({ mcpServer, onSuccess }: MCPConnection
       let tools: unknown[] | undefined;
       
       try {
-        // Handle SSE format
+        // Handle SSE format - check for both "data: " (with space) and "data:" (without)
         if (body.includes('data:')) {
           const lines = body.split('\n');
           for (const line of lines) {
-            if (line.startsWith('data:')) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6).trim();
+              if (data && data !== '[DONE]') {
+                try {
+                  parsedBody = JSON.parse(data);
+                  break;
+                } catch { /* continue */ }
+              }
+            } else if (line.startsWith('data:')) {
               const data = line.slice(5).trim();
               if (data && data !== '[DONE]') {
                 try {
