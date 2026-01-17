@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Box } from 'lucide-react';
 import { ResourceList } from '@/components/resources/ResourceList';
 import { ModelAPICreateDialog } from '@/components/resources/ModelAPICreateDialog';
@@ -8,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import type { ModelAPI } from '@/types/kubernetes';
 
 export function ModelAPIList() {
+  const navigate = useNavigate();
   const { modelAPIs, setSelectedResource, setSelectedResourceMode } = useKubernetesStore();
   const { deleteModelAPI } = useKubernetesConnection();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -60,8 +62,8 @@ export function ModelAPIList() {
   ];
 
   const handleView = (item: ModelAPI) => {
-    setSelectedResource(item);
-    setSelectedResourceMode('view');
+    const ns = item.metadata.namespace || 'default';
+    navigate(`/modelapis/${ns}/${item.metadata.name}`);
   };
 
   const handleEdit = (item: ModelAPI) => {

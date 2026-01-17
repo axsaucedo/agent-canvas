@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Server, Edit, Trash2, RefreshCw, Wrench, Info, Boxes } from 'lucide-react';
+import { ArrowLeft, Box, Edit, Trash2, RefreshCw, Info, Boxes } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -18,21 +18,20 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useKubernetesStore } from '@/stores/kubernetesStore';
 import { useKubernetesConnection } from '@/contexts/KubernetesConnectionContext';
-import { MCPToolsDebug } from '@/components/mcp/MCPToolsDebug';
-import { MCPServerOverview } from '@/components/mcp/MCPServerOverview';
-import { MCPServerPods } from '@/components/mcp/MCPServerPods';
-import { MCPServerEditDialog } from '@/components/resources/MCPServerEditDialog';
-import type { MCPServer } from '@/types/kubernetes';
+import { ModelAPIOverview } from '@/components/modelapi/ModelAPIOverview';
+import { ModelAPIPods } from '@/components/modelapi/ModelAPIPods';
+import { ModelAPIEditDialog } from '@/components/resources/ModelAPIEditDialog';
+import type { ModelAPI } from '@/types/kubernetes';
 
-export default function MCPServerDetail() {
+export default function ModelAPIDetail() {
   const { namespace, name } = useParams<{ namespace: string; name: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { mcpServers } = useKubernetesStore();
-  const { deleteMCPServer, refreshAll, connected } = useKubernetesConnection();
+  const { modelAPIs } = useKubernetesStore();
+  const { deleteModelAPI, refreshAll, connected } = useKubernetesConnection();
   
-  const [mcpServer, setMCPServer] = useState<MCPServer | null>(null);
+  const [modelAPI, setModelAPI] = useState<ModelAPI | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   
@@ -40,29 +39,29 @@ export default function MCPServerDetail() {
   const initialTab = searchParams.get('tab') || 'overview';
   const [currentTab, setCurrentTab] = useState(initialTab);
 
-  // Find MCPServer from store
+  // Find ModelAPI from store
   useEffect(() => {
-    const found = mcpServers.find(
+    const found = modelAPIs.find(
       (m) => m.metadata.name === name && (m.metadata.namespace || 'default') === namespace
     );
-    setMCPServer(found || null);
-  }, [mcpServers, name, namespace]);
+    setModelAPI(found || null);
+  }, [modelAPIs, name, namespace]);
 
   const handleDelete = async () => {
-    if (!mcpServer) return;
+    if (!modelAPI) return;
     
     setIsDeleting(true);
     try {
-      await deleteMCPServer(mcpServer.metadata.name, mcpServer.metadata.namespace);
+      await deleteModelAPI(modelAPI.metadata.name, modelAPI.metadata.namespace);
       toast({
-        title: 'MCPServer deleted',
-        description: `${mcpServer.metadata.name} has been deleted.`,
+        title: 'ModelAPI deleted',
+        description: `${modelAPI.metadata.name} has been deleted.`,
       });
       navigate('/');
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: 'Failed to delete MCPServer',
+        title: 'Failed to delete ModelAPI',
         description: error instanceof Error ? error.message : 'Unknown error',
       });
     } finally {
@@ -95,13 +94,13 @@ export default function MCPServerDetail() {
     );
   }
 
-  if (!mcpServer) {
+  if (!modelAPI) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-8">
         <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2">MCPServer Not Found</h2>
+          <h2 className="text-xl font-semibold mb-2">ModelAPI Not Found</h2>
           <p className="text-muted-foreground mb-4">
-            The MCPServer "{name}" in namespace "{namespace}" could not be found.
+            The ModelAPI "{name}" in namespace "{namespace}" could not be found.
           </p>
           <div className="flex gap-2 justify-center">
             <Button variant="outline" onClick={() => refreshAll()}>
@@ -131,18 +130,18 @@ export default function MCPServerDetail() {
             </Button>
             
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-mcpserver/20 flex items-center justify-center">
-                <Server className="h-5 w-5 text-mcpserver" />
+              <div className="h-10 w-10 rounded-lg bg-modelapi/20 flex items-center justify-center">
+                <Box className="h-5 w-5 text-modelapi" />
               </div>
               <div>
-                <h1 className="text-lg font-semibold">{mcpServer.metadata.name}</h1>
+                <h1 className="text-lg font-semibold">{modelAPI.metadata.name}</h1>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span className="font-mono">{mcpServer.metadata.namespace || 'default'}</span>
+                  <span className="font-mono">{modelAPI.metadata.namespace || 'default'}</span>
                   <Badge
-                    variant={getStatusVariant(mcpServer.status?.phase)}
+                    variant={getStatusVariant(modelAPI.status?.phase)}
                     className="text-xs"
                   >
-                    {mcpServer.status?.phase || 'Unknown'}
+                    {modelAPI.status?.phase || 'Unknown'}
                   </Badge>
                 </div>
               </div>
@@ -168,9 +167,9 @@ export default function MCPServerDetail() {
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Delete MCPServer?</AlertDialogTitle>
+                  <AlertDialogTitle>Delete ModelAPI?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will permanently delete the MCPServer "{mcpServer.metadata.name}".
+                    This will permanently delete the ModelAPI "{modelAPI.metadata.name}".
                     This action cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
@@ -192,14 +191,10 @@ export default function MCPServerDetail() {
       {/* Content */}
       <main className="container px-4 py-6">
         <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-lg grid-cols-3">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
             <TabsTrigger value="overview" className="flex items-center gap-1">
               <Info className="h-3 w-3" />
               Overview
-            </TabsTrigger>
-            <TabsTrigger value="tools" className="flex items-center gap-1">
-              <Wrench className="h-3 w-3" />
-              Tools Debug
             </TabsTrigger>
             <TabsTrigger value="pods" className="flex items-center gap-1">
               <Boxes className="h-3 w-3" />
@@ -208,22 +203,18 @@ export default function MCPServerDetail() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
-            <MCPServerOverview mcpServer={mcpServer} />
-          </TabsContent>
-
-          <TabsContent value="tools" className="h-[calc(100vh-240px)]">
-            <MCPToolsDebug mcpServer={mcpServer} />
+            <ModelAPIOverview modelAPI={modelAPI} />
           </TabsContent>
 
           <TabsContent value="pods" className="space-y-6">
-            <MCPServerPods mcpServer={mcpServer} />
+            <ModelAPIPods modelAPI={modelAPI} />
           </TabsContent>
         </Tabs>
       </main>
 
       {/* Edit Dialog */}
-      <MCPServerEditDialog
-        mcpServer={mcpServer}
+      <ModelAPIEditDialog
+        modelAPI={modelAPI}
         open={editDialogOpen}
         onClose={() => setEditDialogOpen(false)}
       />

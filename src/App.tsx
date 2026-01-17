@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import AgentDetail from "./pages/AgentDetail";
 import MCPServerDetail from "./pages/MCPServerDetail";
+import ModelAPIDetail from "./pages/ModelAPIDetail";
 import PodLogs from "./pages/PodLogs";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/agents/:namespace/:name" element={<AgentDetail />} />
               <Route path="/mcpservers/:namespace/:name" element={<MCPServerDetail />} />
+              <Route path="/modelapis/:namespace/:name" element={<ModelAPIDetail />} />
               <Route path="/pods/:namespace/:name/logs" element={<PodLogs />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
