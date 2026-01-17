@@ -127,8 +127,14 @@ export const useKubernetesStore = create<KubernetesState>((set) => ({
   isRefreshing: false,
   nextRefreshTime: null,
   
-  // ModelAPI actions
-  setModelAPIs: (apis) => set({ modelAPIs: apis }),
+  // ModelAPI actions - merge instead of replace to avoid flickering on detail pages
+  setModelAPIs: (apis) => set((state) => {
+    // If empty array from API, keep existing until we have data
+    if (apis.length === 0 && state.modelAPIs.length > 0) {
+      return state;
+    }
+    return { modelAPIs: apis };
+  }),
   addModelAPI: (api) => set((state) => ({ modelAPIs: [...state.modelAPIs, api] })),
   updateModelAPI: (name, api) => set((state) => ({
     modelAPIs: state.modelAPIs.map((a) => a.metadata.name === name ? { ...a, ...api } : a),
@@ -137,8 +143,13 @@ export const useKubernetesStore = create<KubernetesState>((set) => ({
     modelAPIs: state.modelAPIs.filter((a) => a.metadata.name !== name),
   })),
   
-  // MCPServer actions
-  setMCPServers: (servers) => set({ mcpServers: servers }),
+  // MCPServer actions - merge instead of replace to avoid flickering on detail pages
+  setMCPServers: (servers) => set((state) => {
+    if (servers.length === 0 && state.mcpServers.length > 0) {
+      return state;
+    }
+    return { mcpServers: servers };
+  }),
   addMCPServer: (server) => set((state) => ({ mcpServers: [...state.mcpServers, server] })),
   updateMCPServer: (name, server) => set((state) => ({
     mcpServers: state.mcpServers.map((s) => s.metadata.name === name ? { ...s, ...server } : s),
@@ -147,8 +158,13 @@ export const useKubernetesStore = create<KubernetesState>((set) => ({
     mcpServers: state.mcpServers.filter((s) => s.metadata.name !== name),
   })),
   
-  // Agent actions
-  setAgents: (agents) => set({ agents }),
+  // Agent actions - merge instead of replace to avoid flickering on detail pages
+  setAgents: (agents) => set((state) => {
+    if (agents.length === 0 && state.agents.length > 0) {
+      return state;
+    }
+    return { agents };
+  }),
   addAgent: (agent) => set((state) => ({ agents: [...state.agents, agent] })),
   updateAgent: (name, agent) => set((state) => ({
     agents: state.agents.map((a) => a.metadata.name === name ? { ...a, ...agent } : a),
