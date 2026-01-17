@@ -12,8 +12,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Workflow,
-  AlertCircle,
-  Terminal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -48,20 +46,17 @@ const k8sItems: NavItem[] = [
 ];
 
 const toolItems: NavItem[] = [
-  { id: 'logs', label: 'Logs', icon: Terminal },
-  { id: 'alerts', label: 'Alerts', icon: AlertCircle },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
-  const { activeTab, setActiveTab, modelAPIs, mcpServers, agents, logs } = useKubernetesStore();
+  const { activeTab, setActiveTab, modelAPIs, mcpServers, agents } = useKubernetesStore();
 
   const getResourceCount = (id: string): number | undefined => {
     switch (id) {
       case 'model-apis': return modelAPIs.length;
       case 'mcp-servers': return mcpServers.length;
       case 'agents': return agents.length;
-      case 'alerts': return logs.filter(l => l.level === 'error').length || undefined;
       default: return undefined;
     }
   };
@@ -112,11 +107,11 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         {!collapsed && (
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center">
-              <Workflow className="h-5 w-5 text-primary" />
+              <span className="text-primary font-bold text-sm">K</span>
             </div>
             <div>
-              <h1 className="text-sm font-bold text-foreground">AgenticK8s</h1>
-              <p className="text-[10px] text-muted-foreground">Operator Dashboard</p>
+              <h1 className="text-sm font-bold text-foreground">KAOS</h1>
+              <p className="text-[10px] text-muted-foreground">K8s Agent Orchestration</p>
             </div>
           </div>
         )}
