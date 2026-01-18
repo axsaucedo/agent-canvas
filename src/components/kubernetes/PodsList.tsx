@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Boxes, Network, RefreshCw, Terminal } from 'lucide-react';
+import { Boxes, Network, RefreshCw, Eye } from 'lucide-react';
 import { useKubernetesStore } from '@/stores/kubernetesStore';
 import { useKubernetesConnection } from '@/contexts/KubernetesConnectionContext';
 import { Badge } from '@/components/ui/badge';
@@ -12,15 +12,15 @@ export function PodsList() {
   const { pods } = useKubernetesStore();
   const { refreshAll } = useKubernetesConnection();
 
-  const handleViewLogs = (pod: Pod, e: React.MouseEvent) => {
+  const handleViewDetails = (pod: Pod, e: React.MouseEvent) => {
     e.stopPropagation();
     const ns = pod.metadata.namespace || 'default';
-    navigate(`/pods/${ns}/${pod.metadata.name}/logs`);
+    navigate(`/pods/${ns}/${pod.metadata.name}?tab=logs`);
   };
 
   const handlePodClick = (pod: Pod) => {
     const ns = pod.metadata.namespace || 'default';
-    navigate(`/pods/${ns}/${pod.metadata.name}/logs`);
+    navigate(`/pods/${ns}/${pod.metadata.name}`);
   };
 
   return (
@@ -103,10 +103,11 @@ export function PodsList() {
                 variant="outline" 
                 size="sm" 
                 className="w-full gap-1"
-                onClick={(e) => handleViewLogs(pod, e)}
+                onClick={(e) => handleViewDetails(pod, e)}
+                title="View pod details and logs"
               >
-                <Terminal className="h-3 w-3" />
-                View Logs
+                <Eye className="h-3 w-3" />
+                View Details
               </Button>
             </div>
           </div>

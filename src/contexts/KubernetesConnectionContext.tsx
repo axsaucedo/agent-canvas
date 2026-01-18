@@ -130,7 +130,8 @@ export function KubernetesConnectionProvider({ children }: { children: React.Rea
         namespaces: namespaceNames.length > 0 ? namespaceNames : s.namespaces,
       }));
 
-      addLogEntry('info', `Synced: ${modelAPIs.length} ModelAPIs, ${mcpServers.length} MCPServers, ${agents.length} Agents, ${secrets.length} Secrets`, 'connection');
+      // Note: We don't log "Synced" messages anymore to reduce activity log bloat
+      // CRUD operations will log when resources are created/updated/deleted
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to fetch resources';
       console.error('[KubernetesConnectionContext] refreshAll error:', error);
@@ -299,8 +300,21 @@ export function KubernetesConnectionProvider({ children }: { children: React.Rea
     addLogEntry('info', 'Disconnected from cluster', 'connection');
   }, [stopPolling, store, addLogEntry]);
 
-  // Auto-connect on mount if saved config exists
+  // Auto-connect on mount if saved config exists or URL param is provided
   useEffect(() => {
+    // Check for kubernetesUrl query parameter first
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlKubernetesUrl = urlParams.get('kubernetesUrl');
+    
+    if (urlKubernetesUrl) {
+      console.log('[KubernetesConnectionContext] Found kubernetesUrl in URL params:', urlKubernetesUrl);
+      // Save to localStorage for future sessions
+      localStorage.setItem('k8s-config', JSON.stringify({ baseUrl: urlKubernetesUrl, namespace: 'default' }));
+      connect(urlKubernetesUrl, 'default');
+      return;
+    }
+    
+    // Check localStorage for saved config
     const savedConfig = localStorage.getItem('k8s-config');
     if (savedConfig) {
       try {
@@ -308,11 +322,16 @@ export function KubernetesConnectionProvider({ children }: { children: React.Rea
         console.log('[KubernetesConnectionContext] Found saved config:', config);
         if (config.baseUrl) {
           connect(config.baseUrl, config.namespace || 'default');
+          return;
         }
       } catch (e) {
         console.error('[KubernetesConnectionContext] Failed to parse saved config:', e);
       }
     }
+    
+    // Default: try to connect to localhost:8010
+    console.log('[KubernetesConnectionContext] No saved config, attempting default localhost:8010');
+    connect('http://localhost:8010', 'default');
     
     return () => stopPolling();
   }, []);  // eslint-disable-line react-hooks/exhaustive-deps
