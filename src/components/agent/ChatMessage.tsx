@@ -3,6 +3,8 @@ import { cn } from '@/lib/utils';
 import { Bot, User, Copy, Check, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkBreaks from 'remark-breaks';
 
 interface ChatMessageProps {
   role: 'user' | 'assistant' | 'system';
@@ -121,16 +123,28 @@ export function ChatMessage({ role, content, isStreaming, timestamp }: ChatMessa
           isError && "prose-p:text-destructive/80 prose-headings:text-destructive"
         )}>
           <ReactMarkdown
+            remarkPlugins={[remarkGfm, remarkBreaks]}
             components={{
-              p: ({ children }) => <p className="leading-relaxed mb-2 last:mb-0">{children}</p>,
+              p: ({ children }) => <p className="leading-relaxed mb-3 last:mb-0">{children}</p>,
+              ul: ({ children }) => <ul className="list-disc list-inside mb-3 space-y-1">{children}</ul>,
+              ol: ({ children }) => <ol className="list-decimal list-inside mb-3 space-y-1">{children}</ol>,
+              li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+              h1: ({ children }) => <h1 className="text-xl font-bold mb-2 mt-4 first:mt-0">{children}</h1>,
+              h2: ({ children }) => <h2 className="text-lg font-bold mb-2 mt-3 first:mt-0">{children}</h2>,
+              h3: ({ children }) => <h3 className="text-base font-semibold mb-2 mt-3 first:mt-0">{children}</h3>,
+              strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+              em: ({ children }) => <em className="italic">{children}</em>,
               code: ({ children, className }) => {
                 const isBlock = className?.includes('language-');
                 return isBlock ? (
-                  <code className={cn("block overflow-x-auto", className)}>{children}</code>
+                  <code className={cn("block overflow-x-auto p-2 rounded bg-muted", className)}>{children}</code>
                 ) : (
-                  <code className="text-sm">{children}</code>
+                  <code className="text-sm bg-muted px-1 py-0.5 rounded">{children}</code>
                 );
               },
+              pre: ({ children }) => <pre className="overflow-x-auto mb-3 rounded border border-border">{children}</pre>,
+              blockquote: ({ children }) => <blockquote className="border-l-2 border-primary pl-4 italic my-3">{children}</blockquote>,
+              hr: () => <hr className="my-4 border-border" />,
             }}
           >
             {safeContent}
