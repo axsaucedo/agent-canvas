@@ -5,12 +5,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { KubernetesConnectionProvider } from "@/contexts/KubernetesConnectionContext";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import AgentDetail from "./pages/AgentDetail";
 import MCPServerDetail from "./pages/MCPServerDetail";
 import ModelAPIDetail from "./pages/ModelAPIDetail";
-import PodLogs from "./pages/PodLogs";
+import PodDetail from "./pages/PodDetail";
 
 const queryClient = new QueryClient();
 
@@ -18,27 +19,29 @@ const queryClient = new QueryClient();
 const basename = import.meta.env.BASE_URL;
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <KubernetesConnectionProvider>
-          <BrowserRouter basename={basename}>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/agents/:namespace/:name" element={<AgentDetail />} />
-              <Route path="/mcpservers/:namespace/:name" element={<MCPServerDetail />} />
-              <Route path="/modelapis/:namespace/:name" element={<ModelAPIDetail />} />
-              <Route path="/pods/:namespace/:name/logs" element={<PodLogs />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </KubernetesConnectionProvider>
-      </TooltipProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <KubernetesConnectionProvider>
+            <BrowserRouter basename={basename}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/agents/:namespace/:name" element={<AgentDetail />} />
+                <Route path="/mcpservers/:namespace/:name" element={<MCPServerDetail />} />
+                <Route path="/modelapis/:namespace/:name" element={<ModelAPIDetail />} />
+                <Route path="/pods/:namespace/:name" element={<PodDetail />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </KubernetesConnectionProvider>
+        </TooltipProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

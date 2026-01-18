@@ -49,13 +49,15 @@ const toolItems: NavItem[] = [
 ];
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
-  const { activeTab, setActiveTab, modelAPIs, mcpServers, agents } = useKubernetesStore();
+  const { activeTab, setActiveTab, modelAPIs, mcpServers, agents, pods, secrets } = useKubernetesStore();
 
   const getResourceCount = (id: string): number | undefined => {
     switch (id) {
       case 'model-apis': return modelAPIs.length;
       case 'mcp-servers': return mcpServers.length;
       case 'agents': return agents.length;
+      case 'pods': return pods.length;
+      case 'secrets': return secrets.length;
       default: return undefined;
     }
   };
