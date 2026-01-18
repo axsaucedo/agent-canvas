@@ -4,7 +4,6 @@ import { Bot, User, Copy, Check, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import remarkBreaks from 'remark-breaks';
 
 interface ChatMessageProps {
   role: 'user' | 'assistant' | 'system';
@@ -52,33 +51,12 @@ function safeContentToString(content: unknown): string {
   return String(content);
 }
 
-// Preprocess markdown to ensure proper formatting
-// Markdown requires blank lines before lists and other block elements
-function preprocessMarkdown(content: string): string {
-  let processed = content;
-  
-  // Ensure blank line before unordered list items (*, -, +)
-  // Match a non-empty line followed by a list item without a blank line between
-  processed = processed.replace(/([^\n])\n(\s*[\*\-\+]\s)/g, '$1\n\n$2');
-  
-  // Ensure blank line before numbered list items
-  processed = processed.replace(/([^\n])\n(\s*\d+\.\s)/g, '$1\n\n$2');
-  
-  // Ensure blank line before headings
-  processed = processed.replace(/([^\n])\n(#{1,6}\s)/g, '$1\n\n$2');
-  
-  // Ensure blank line before code blocks
-  processed = processed.replace(/([^\n])\n(```)/g, '$1\n\n$2');
-  
-  return processed;
-}
 
 export function ChatMessage({ role, content, isStreaming, timestamp }: ChatMessageProps) {
   const [copied, setCopied] = useState(false);
   
-  // Ensure content is always a string and properly formatted for markdown
+  // Ensure content is always a string
   const safeContent = safeContentToString(content);
-  const processedContent = preprocessMarkdown(safeContent);
   
   const isAssistant = role === 'assistant';
   const { isError, errorType } = isAssistant ? detectError(safeContent) : { isError: false, errorType: '' };
@@ -145,15 +123,15 @@ export function ChatMessage({ role, content, isStreaming, timestamp }: ChatMessa
           isError && "prose-p:text-destructive/80 prose-headings:text-destructive"
         )}>
           <ReactMarkdown
-            remarkPlugins={[remarkGfm, remarkBreaks]}
+            remarkPlugins={[remarkGfm]}
             components={{
-              p: ({ children }) => <p className="leading-relaxed mb-3 last:mb-0">{children}</p>,
-              ul: ({ children }) => <ul className="list-disc list-inside mb-3 space-y-1">{children}</ul>,
-              ol: ({ children }) => <ol className="list-decimal list-inside mb-3 space-y-1">{children}</ol>,
+              p: ({ children }) => <p className="leading-relaxed mb-2 last:mb-0">{children}</p>,
+              ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-0.5">{children}</ul>,
+              ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-0.5">{children}</ol>,
               li: ({ children }) => <li className="leading-relaxed">{children}</li>,
-              h1: ({ children }) => <h1 className="text-xl font-bold mb-2 mt-4 first:mt-0">{children}</h1>,
-              h2: ({ children }) => <h2 className="text-lg font-bold mb-2 mt-3 first:mt-0">{children}</h2>,
-              h3: ({ children }) => <h3 className="text-base font-semibold mb-2 mt-3 first:mt-0">{children}</h3>,
+              h1: ({ children }) => <h1 className="text-xl font-bold mb-2 mt-3 first:mt-0">{children}</h1>,
+              h2: ({ children }) => <h2 className="text-lg font-bold mb-2 mt-2 first:mt-0">{children}</h2>,
+              h3: ({ children }) => <h3 className="text-base font-semibold mb-1.5 mt-2 first:mt-0">{children}</h3>,
               strong: ({ children }) => <strong className="font-bold">{children}</strong>,
               em: ({ children }) => <em className="italic">{children}</em>,
               code: ({ children, className }) => {
@@ -164,12 +142,12 @@ export function ChatMessage({ role, content, isStreaming, timestamp }: ChatMessa
                   <code className="text-sm bg-muted px-1 py-0.5 rounded">{children}</code>
                 );
               },
-              pre: ({ children }) => <pre className="overflow-x-auto mb-3 rounded border border-border">{children}</pre>,
-              blockquote: ({ children }) => <blockquote className="border-l-2 border-primary pl-4 italic my-3">{children}</blockquote>,
-              hr: () => <hr className="my-4 border-border" />,
+              pre: ({ children }) => <pre className="overflow-x-auto mb-2 rounded border border-border">{children}</pre>,
+              blockquote: ({ children }) => <blockquote className="border-l-2 border-primary pl-4 italic my-2">{children}</blockquote>,
+              hr: () => <hr className="my-3 border-border" />,
             }}
           >
-            {processedContent}
+            {safeContent}
           </ReactMarkdown>
           {isStreaming && !isError && (
             <span className="inline-block w-2 h-4 ml-0.5 bg-agent/60 animate-pulse" />
