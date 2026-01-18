@@ -1,6 +1,3 @@
-import { useState } from 'react';
-import { Sidebar } from '@/components/layout/Sidebar';
-import { Header } from '@/components/layout/Header';
 import { OverviewDashboard } from '@/components/dashboard/OverviewDashboard';
 import { VisualCanvas } from '@/components/canvas/VisualCanvas';
 import { ModelAPIList } from '@/components/resources/ModelAPIList';
@@ -19,7 +16,6 @@ import { useKubernetesStore } from '@/stores/kubernetesStore';
 import type { Agent, ModelAPI, MCPServer } from '@/types/kubernetes';
 
 function IndexContent() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { activeTab, selectedResource, selectedResourceMode, setSelectedResource, setSelectedResourceMode } = useKubernetesStore();
 
   const handleCloseResource = () => {
@@ -50,12 +46,8 @@ function IndexContent() {
   const isMCPServerSelected = selectedResource?.kind === 'MCPServer';
 
   return (
-    <div className="flex h-screen w-full bg-background overflow-hidden">
-      <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header />
-        <main className="flex-1 overflow-auto">{renderContent()}</main>
-      </div>
+    <>
+      {renderContent()}
 
       {/* ModelAPI Detail Drawer */}
       {isModelAPISelected && selectedResourceMode === 'view' && (
@@ -113,7 +105,7 @@ function IndexContent() {
           onClose={handleCloseResource}
         />
       )}
-    </div>
+    </>
   );
 }
 

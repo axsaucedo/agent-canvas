@@ -3,7 +3,6 @@ import { Box, Globe, Settings, Activity, Clock, Tag } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { YamlViewer } from '@/components/shared/YamlViewer';
 import type { ModelAPI } from '@/types/kubernetes';
 
 interface ModelAPIOverviewProps {
@@ -318,11 +317,6 @@ export function ModelAPIOverview({ modelAPI }: ModelAPIOverviewProps) {
           </CardContent>
         </Card>
       )}
-
-      {/* YAML View */}
-      <div className="md:col-span-2">
-        <YamlViewer resource={modelAPI} title="Resource YAML" maxHeight="500px" />
-      </div>
     </div>
   );
 }

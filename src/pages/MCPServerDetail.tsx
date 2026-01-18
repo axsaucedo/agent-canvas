@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Server, Edit, Trash2, RefreshCw, Wrench, Info, Boxes } from 'lucide-react';
+import { ArrowLeft, Server, Edit, Trash2, RefreshCw, Wrench, Info, Boxes, FileCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -21,6 +21,7 @@ import { useKubernetesConnection } from '@/contexts/KubernetesConnectionContext'
 import { MCPToolsDebug } from '@/components/mcp/MCPToolsDebug';
 import { MCPServerOverview } from '@/components/mcp/MCPServerOverview';
 import { MCPServerPods } from '@/components/mcp/MCPServerPods';
+import { YamlViewer } from '@/components/shared/YamlViewer';
 import { MCPServerEditDialog } from '@/components/resources/MCPServerEditDialog';
 import type { MCPServer } from '@/types/kubernetes';
 
@@ -83,7 +84,7 @@ export default function MCPServerDetail() {
 
   if (!connected) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-8">
+      <div className="flex flex-col items-center justify-center h-full p-8">
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-2">Not Connected</h2>
           <p className="text-muted-foreground mb-4">
@@ -97,7 +98,7 @@ export default function MCPServerDetail() {
 
   if (!mcpServer) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-8">
+      <div className="flex flex-col items-center justify-center h-full p-8">
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-2">MCPServer Not Found</h2>
           <p className="text-muted-foreground mb-4">
@@ -116,110 +117,114 @@ export default function MCPServerDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/')}
-              className="shrink-0"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-mcpserver/20 flex items-center justify-center">
-                <Server className="h-5 w-5 text-mcpserver" />
-              </div>
-              <div>
-                <h1 className="text-lg font-semibold">{mcpServer.metadata.name}</h1>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span className="font-mono">{mcpServer.metadata.namespace || 'default'}</span>
-                  <Badge
-                    variant={getStatusVariant(mcpServer.status?.phase)}
-                    className="text-xs"
-                  >
-                    {mcpServer.status?.phase || 'Unknown'}
-                  </Badge>
-                </div>
+    <div className="p-6 space-y-6 animate-fade-in">
+      {/* Page Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/')}
+            className="shrink-0"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          
+          <div className="flex items-center gap-3">
+            <div className="h-12 w-12 rounded-xl bg-mcpserver/10 flex items-center justify-center">
+              <Server className="h-6 w-6 text-mcpserver" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">{mcpServer.metadata.name}</h1>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span className="font-mono">{mcpServer.metadata.namespace || 'default'}</span>
+                <Badge
+                  variant={getStatusVariant(mcpServer.status?.phase)}
+                  className="text-xs"
+                >
+                  {mcpServer.status?.phase || 'Unknown'}
+                </Badge>
               </div>
             </div>
           </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setEditDialogOpen(true)}
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
-            
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="sm" disabled={isDeleting}>
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete MCPServer?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will permanently delete the MCPServer "{mcpServer.metadata.name}".
-                    This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleDelete}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    Delete
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
         </div>
-      </header>
 
-      {/* Content */}
-      <main className="container px-4 py-6">
-        <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-3">
-            <TabsTrigger value="overview" className="flex items-center gap-1">
-              <Info className="h-3 w-3" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="tools" className="flex items-center gap-1">
-              <Wrench className="h-3 w-3" />
-              Tools
-            </TabsTrigger>
-            <TabsTrigger value="pods" className="flex items-center gap-1">
-              <Boxes className="h-3 w-3" />
-              Pods
-            </TabsTrigger>
-          </TabsList>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setEditDialogOpen(true)}
+          >
+            <Edit className="h-4 w-4 mr-2" />
+            Edit
+          </Button>
+          
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm" disabled={isDeleting}>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete MCPServer?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete the MCPServer "{mcpServer.metadata.name}".
+                  This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDelete}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      </div>
 
-          <TabsContent value="overview" className="space-y-6">
-            <MCPServerOverview mcpServer={mcpServer} />
-          </TabsContent>
+      {/* Tabs Content */}
+      <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-6">
+        <TabsList className="grid w-full max-w-lg grid-cols-4">
+          <TabsTrigger value="overview" className="flex items-center gap-1">
+            <Info className="h-3 w-3" />
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="tools" className="flex items-center gap-1">
+            <Wrench className="h-3 w-3" />
+            Tools
+          </TabsTrigger>
+          <TabsTrigger value="pods" className="flex items-center gap-1">
+            <Boxes className="h-3 w-3" />
+            Pods
+          </TabsTrigger>
+          <TabsTrigger value="yaml" className="flex items-center gap-1">
+            <FileCode className="h-3 w-3" />
+            YAML
+          </TabsTrigger>
+        </TabsList>
 
-          <TabsContent value="tools" className="h-[calc(100vh-240px)]">
-            <MCPToolsDebug mcpServer={mcpServer} />
-          </TabsContent>
+        <TabsContent value="overview" className="space-y-6">
+          <MCPServerOverview mcpServer={mcpServer} />
+        </TabsContent>
 
-          <TabsContent value="pods" className="space-y-6">
-            <MCPServerPods mcpServer={mcpServer} />
-          </TabsContent>
-        </Tabs>
-      </main>
+        <TabsContent value="tools" className="h-[calc(100vh-320px)]">
+          <MCPToolsDebug mcpServer={mcpServer} />
+        </TabsContent>
+
+        <TabsContent value="pods" className="space-y-6">
+          <MCPServerPods mcpServer={mcpServer} />
+        </TabsContent>
+
+        <TabsContent value="yaml" className="space-y-6">
+          <YamlViewer resource={mcpServer} title="MCPServer YAML" maxHeight="calc(100vh - 380px)" />
+        </TabsContent>
+      </Tabs>
 
       {/* Edit Dialog */}
       <MCPServerEditDialog

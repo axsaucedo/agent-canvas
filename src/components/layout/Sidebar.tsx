@@ -106,7 +106,11 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
         {!collapsed && (
-          <div className="flex items-center gap-2">
+          <button 
+            onClick={() => setActiveTab('overview')}
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            title="Go to Overview"
+          >
             <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center">
               <span className="text-primary font-bold text-sm">K</span>
             </div>
@@ -114,7 +118,16 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               <h1 className="text-sm font-bold text-foreground">KAOS</h1>
               <p className="text-[10px] text-muted-foreground">K8s Agent Orchestration</p>
             </div>
-          </div>
+          </button>
+        )}
+        {collapsed && (
+          <button
+            onClick={() => setActiveTab('overview')}
+            className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center hover:opacity-80 transition-opacity mx-auto"
+            title="Go to Overview"
+          >
+            <span className="text-primary font-bold text-sm">K</span>
+          </button>
         )}
         <Button
           variant="ghost"

@@ -3,7 +3,6 @@ import { Server, Package, Code, Globe, Activity, Clock, Tag } from 'lucide-react
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { YamlViewer } from '@/components/shared/YamlViewer';
 import type { MCPServer } from '@/types/kubernetes';
 
 interface MCPServerOverviewProps {
@@ -313,11 +312,6 @@ export function MCPServerOverview({ mcpServer }: MCPServerOverviewProps) {
           </CardContent>
         </Card>
       )}
-
-      {/* YAML View */}
-      <div className="md:col-span-2">
-        <YamlViewer resource={mcpServer} title="Resource YAML" maxHeight="500px" />
-      </div>
     </div>
   );
 }

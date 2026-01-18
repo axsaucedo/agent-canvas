@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useKubernetesStore } from '@/stores/kubernetesStore';
 import type { Agent, Pod } from '@/types/kubernetes';
-import { Box, CheckCircle, AlertCircle, Clock, RefreshCw, XCircle, Cpu, Server, ExternalLink } from 'lucide-react';
+import { Box, CheckCircle, AlertCircle, Clock, RefreshCw, XCircle, Cpu, Server, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AgentPodsProps {
@@ -218,7 +218,7 @@ export function AgentPods({ agent }: AgentPodsProps) {
     // Include return path with tab=pods to return to correct tab
     const agentNs = agent.metadata.namespace || 'default';
     const returnPath = encodeURIComponent(`/agents/${agentNs}/${agent.metadata.name}?tab=pods`);
-    navigate(`/pods/${pod.metadata.namespace}/${pod.metadata.name}/logs?returnTo=${returnPath}`);
+    navigate(`/pods/${pod.metadata.namespace || 'default'}/${pod.metadata.name}?tab=logs&returnTo=${returnPath}`);
   };
 
   return (
@@ -411,8 +411,8 @@ export function AgentPods({ agent }: AgentPodsProps) {
                           <TableCell className="text-xs text-muted-foreground">
                             {pod.status?.hostIP || '-'}
                           </TableCell>
-                          <TableCell>
-                            <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                          <TableCell title="View pod details">
+                            <Eye className="h-4 w-4 text-muted-foreground" />
                           </TableCell>
                         </TableRow>
                       );

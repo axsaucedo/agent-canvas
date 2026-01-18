@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { KubernetesConnectionProvider } from "@/contexts/KubernetesConnectionContext";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { MainLayout } from "@/components/layout/MainLayout";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import AgentDetail from "./pages/AgentDetail";
@@ -28,12 +29,15 @@ const App = () => (
           <KubernetesConnectionProvider>
             <BrowserRouter basename={basename}>
               <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/agents/:namespace/:name" element={<AgentDetail />} />
-                <Route path="/mcpservers/:namespace/:name" element={<MCPServerDetail />} />
-                <Route path="/modelapis/:namespace/:name" element={<ModelAPIDetail />} />
-                <Route path="/pods/:namespace/:name" element={<PodDetail />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                {/* Main layout with sidebar and header */}
+                <Route element={<MainLayout />}>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/agents/:namespace/:name" element={<AgentDetail />} />
+                  <Route path="/mcpservers/:namespace/:name" element={<MCPServerDetail />} />
+                  <Route path="/modelapis/:namespace/:name" element={<ModelAPIDetail />} />
+                  <Route path="/pods/:namespace/:name" element={<PodDetail />} />
+                </Route>
+                {/* 404 page without layout */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
