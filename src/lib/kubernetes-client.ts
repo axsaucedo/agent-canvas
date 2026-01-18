@@ -999,8 +999,8 @@ class KubernetesClient {
   }
 
   /**
-   * Stream chat completions from an OpenAI-compatible agent service
-   * Handles SSE parsing and provides callbacks for streaming updates
+   * Send chat completion to an OpenAI-compatible agent service
+   * Uses non-streaming mode and returns the full response
    */
   async streamChatCompletion(
     serviceName: string,
@@ -1027,7 +1027,7 @@ class KubernetesClient {
           body: JSON.stringify({
             model,
             messages,
-            stream: true,
+            stream: false, // Non-streaming mode to preserve newlines
             temperature,
             ...(maxTokens && { max_tokens: maxTokens }),
             ...(sessionId && { session_id: sessionId }),
@@ -1041,68 +1041,26 @@ class KubernetesClient {
         throw new Error(`Chat API error ${response.status}: ${errorText}`);
       }
 
-      if (!response.body) {
-        throw new Error('No response body');
+      const data = await response.json();
+      console.log('[k8sClient] Non-streaming response:', JSON.stringify(data).substring(0, 500));
+      
+      // Extract session_id from response if present
+      const receivedSessionId = data.session_id;
+      if (receivedSessionId) {
+        console.log('[k8sClient] Received session ID:', receivedSessionId);
       }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let receivedSessionId: string | undefined;
-
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) {
-          onDone({ sessionId: receivedSessionId });
-          break;
-        }
-
-        const rawChunk = decoder.decode(value, { stream: true });
-        // Debug: log raw SSE chunk to see exactly what comes from wire
-        console.log('[k8sClient] Raw SSE chunk:', JSON.stringify(rawChunk).substring(0, 500));
-        buffer += rawChunk;
-        
-        // SSE uses double newline to separate events, but data lines end with single \n
-        // We need to be careful not to split content that contains \n
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed || !trimmed.startsWith('data: ')) continue;
-
-          const data = trimmed.slice(6);
-          if (data === '[DONE]') {
-            onDone({ sessionId: receivedSessionId });
-            return;
-          }
-
-          try {
-            const parsed = JSON.parse(data);
-            // Extract session_id from response if present
-            if (parsed.session_id && !receivedSessionId) {
-              receivedSessionId = parsed.session_id;
-              console.log('[k8sClient] Received session ID:', receivedSessionId);
-            }
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) {
-              // Debug: log content with any newlines visible
-              if (content.includes('\n')) {
-                console.log('[k8sClient] SSE chunk HAS NEWLINES:', JSON.stringify(content));
-              } else {
-                console.log('[k8sClient] SSE chunk (no newlines):', content.substring(0, 100));
-              }
-              onChunk(content);
-            }
-          } catch (e) {
-            // Ignore parse errors for incomplete JSON
-            console.debug('[k8sClient] SSE parse skip:', data.substring(0, 50));
-          }
-        }
+      
+      // Get the full content from the response
+      const content = data.choices?.[0]?.message?.content;
+      if (content) {
+        console.log('[k8sClient] Full content (first 200 chars):', JSON.stringify(content).substring(0, 200));
+        console.log('[k8sClient] Content has newlines:', content.includes('\n'));
+        onChunk(content);
       }
+      
+      onDone({ sessionId: receivedSessionId });
     } catch (error) {
-      console.error('[k8sClient] streamChatCompletion error:', error);
+      console.error('[k8sClient] chatCompletion error:', error);
       onError(error instanceof Error ? error : new Error(String(error)));
     }
   }
