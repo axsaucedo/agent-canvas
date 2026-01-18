@@ -33,6 +33,13 @@ interface CustomAction<T> {
   onClick: (item: T) => void;
 }
 
+export interface DeploymentAwareStatus {
+  label: string;
+  variant: 'success' | 'warning' | 'error' | 'destructive' | 'secondary';
+  isRolling?: boolean;
+  progress?: string; // e.g., "1/2"
+}
+
 interface ResourceListProps<T> {
   title: string;
   description: string;
@@ -45,7 +52,7 @@ interface ResourceListProps<T> {
   onDelete?: (item: T) => void;
   onView?: (item: T) => void;
   customActions?: CustomAction<T>[];
-  getStatus?: (item: T) => string;
+  getStatus?: (item: T) => string | DeploymentAwareStatus;
   getItemId: (item: T) => string;
 }
 
@@ -239,7 +246,23 @@ export function ResourceList<T>({
                   ))}
                   {status && (
                     <td className="px-4 py-3">
-                      <Badge variant={getStatusVariant(status) as any}>{status}</Badge>
+                      {typeof status === 'string' ? (
+                        <Badge variant={getStatusVariant(status) as any}>{status}</Badge>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <Badge variant={status.variant as any} className="gap-1">
+                            {status.isRolling && (
+                              <RefreshCw className="h-3 w-3 animate-spin" />
+                            )}
+                            {status.label}
+                          </Badge>
+                          {status.progress && (
+                            <span className="text-xs text-muted-foreground font-mono">
+                              {status.progress}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </td>
                   )}
                   <td className="px-4 py-3">
