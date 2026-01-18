@@ -1,12 +1,62 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Server } from 'lucide-react';
-import { ResourceList } from '@/components/resources/ResourceList';
+import { ResourceList, DeploymentAwareStatus } from '@/components/resources/ResourceList';
 import { MCPServerCreateDialog } from '@/components/resources/MCPServerCreateDialog';
 import { useKubernetesStore } from '@/stores/kubernetesStore';
 import { useKubernetesConnection } from '@/contexts/KubernetesConnectionContext';
 import { Badge } from '@/components/ui/badge';
 import type { MCPServer } from '@/types/kubernetes';
+
+const getDeploymentAwareStatus = (item: MCPServer): DeploymentAwareStatus => {
+  const deployment = item.status?.deployment;
+  const phase = item.status?.phase || 'Unknown';
+  
+  // If we have deployment info, use it to determine the real status
+  if (deployment) {
+    const { replicas = 0, readyReplicas = 0, updatedReplicas = 0 } = deployment;
+    
+    // Check if a rolling update is in progress
+    if (replicas > 0 && updatedReplicas < replicas) {
+      return {
+        label: 'Updating',
+        variant: 'warning',
+        isRolling: true,
+        progress: `${updatedReplicas}/${replicas}`,
+      };
+    }
+    
+    // Check if pods are not ready
+    if (replicas > 0 && readyReplicas < replicas) {
+      return {
+        label: 'Pending',
+        variant: 'warning',
+        progress: `${readyReplicas}/${replicas}`,
+      };
+    }
+    
+    // All pods ready
+    if (replicas > 0 && readyReplicas === replicas) {
+      return {
+        label: 'Ready',
+        variant: 'success',
+        progress: `${readyReplicas}/${replicas}`,
+      };
+    }
+  }
+  
+  // Fall back to phase-based status
+  const normalizedPhase = phase.toLowerCase();
+  if (normalizedPhase === 'ready' || normalizedPhase === 'running') {
+    return { label: phase, variant: 'success' };
+  } else if (normalizedPhase === 'pending' || normalizedPhase === 'creating') {
+    return { label: phase, variant: 'warning' };
+  } else if (normalizedPhase === 'error' || normalizedPhase === 'failed') {
+    return { label: phase, variant: 'error' };
+  }
+  
+  return { label: phase, variant: 'secondary' };
+};
 
 export function MCPServerList() {
   const navigate = useNavigate();
@@ -89,7 +139,7 @@ export function MCPServerList() {
         onView={handleView}
         onEdit={handleEdit}
         onDelete={(item) => deleteMCPServer(item.metadata.name)}
-        getStatus={(item) => item.status?.phase || 'Unknown'}
+        getStatus={getDeploymentAwareStatus}
         getItemId={(item) => item.metadata.name}
       />
       <MCPServerCreateDialog 
