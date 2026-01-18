@@ -1,7 +1,6 @@
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function ThemeToggle({ className }: { className?: string }) {
@@ -23,33 +22,37 @@ export function ThemeToggle({ className }: { className?: string }) {
   }
 
   const currentTheme = theme === 'system' ? resolvedTheme : theme;
+  const isDark = currentTheme === 'dark';
+
+  const toggleTheme = () => {
+    setTheme(isDark ? 'light' : 'dark');
+  };
 
   return (
-    <div className={cn("flex items-center gap-1 p-1 rounded-full bg-muted border border-border", className)}>
-      <Button
-        variant="ghost"
-        size="icon"
+    <button
+      onClick={toggleTheme}
+      className={cn(
+        "flex items-center gap-1 p-1 rounded-full bg-muted border border-border cursor-pointer hover:bg-muted/80 transition-colors",
+        className
+      )}
+      title={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+    >
+      <div
         className={cn(
-          "h-7 w-7 rounded-full",
-          currentTheme === "light" && "bg-background shadow-sm"
+          "h-7 w-7 rounded-full flex items-center justify-center transition-colors",
+          !isDark && "bg-background shadow-sm"
         )}
-        onClick={() => setTheme("light")}
       >
         <Sun className="h-4 w-4" />
-        <span className="sr-only">Light mode</span>
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon"
+      </div>
+      <div
         className={cn(
-          "h-7 w-7 rounded-full",
-          currentTheme === "dark" && "bg-background shadow-sm"
+          "h-7 w-7 rounded-full flex items-center justify-center transition-colors",
+          isDark && "bg-background shadow-sm"
         )}
-        onClick={() => setTheme("dark")}
       >
         <Moon className="h-4 w-4" />
-        <span className="sr-only">Dark mode</span>
-      </Button>
-    </div>
+      </div>
+    </button>
   );
 }

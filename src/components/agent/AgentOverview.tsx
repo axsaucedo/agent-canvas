@@ -3,7 +3,6 @@ import { Bot, Server, Network, Clock, Tag, FileCode, Settings, Activity, Globe }
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { YamlViewer } from '@/components/shared/YamlViewer';
 import type { Agent } from '@/types/kubernetes';
 
 interface AgentOverviewProps {
@@ -323,11 +322,6 @@ export function AgentOverview({ agent }: AgentOverviewProps) {
           </CardContent>
         </Card>
       )}
-
-      {/* YAML View */}
-      <div className="md:col-span-2">
-        <YamlViewer resource={agent} title="Resource YAML" maxHeight="500px" />
-      </div>
     </div>
   );
 }
