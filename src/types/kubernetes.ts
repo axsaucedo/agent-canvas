@@ -185,6 +185,20 @@ export interface AgentNetworkConfig {
   access?: string[];
 }
 
+// AgentMemoryConfig defines the memory system configuration
+export interface AgentMemoryConfig {
+  // Enable/disable memory (default: true)
+  enabled?: boolean;
+  // Memory type (only "local" supported currently)
+  type?: 'local';
+  // Messages for delegation context (default: 6)
+  contextLimit?: number;
+  // Max sessions to keep (default: 1000)
+  maxSessions?: number;
+  // Max events per session (default: 500)
+  maxSessionEvents?: number;
+}
+
 // AgentConfig defines agent-specific configuration
 export interface AgentConfig {
   // Description is a human-readable description of the agent
@@ -193,6 +207,8 @@ export interface AgentConfig {
   instructions?: string;
   // ReasoningLoopMaxSteps is the maximum number of reasoning steps before stopping (1-20, default 5)
   reasoningLoopMaxSteps?: number;
+  // Memory system configuration
+  memory?: AgentMemoryConfig;
   // Env variables to pass to the agent runtime
   env?: EnvVar[];
 }
