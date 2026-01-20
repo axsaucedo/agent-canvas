@@ -42,6 +42,13 @@ export default function AgentDetail() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   
+  // Handler for closing edit dialog - refresh data to get latest state
+  const handleEditDialogClose = async () => {
+    setEditDialogOpen(false);
+    // Refresh all resources to get the updated agent
+    await refreshAll();
+  };
+  
   // Get initial tab from URL params (for returning from logs page)
   const initialTab = searchParams.get('tab') || 'chat';
   const [currentTab, setCurrentTab] = useState(initialTab);
@@ -292,7 +299,7 @@ export default function AgentDetail() {
       <AgentEditDialog
         agent={agent}
         open={editDialogOpen}
-        onClose={() => setEditDialogOpen(false)}
+        onClose={handleEditDialogClose}
       />
     </div>
   );

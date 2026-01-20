@@ -39,6 +39,9 @@ export function AgentMemory({ agent }: AgentMemoryProps) {
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
+  // Check if memory is enabled for this agent
+  const isMemoryEnabled = agent.spec.config?.memory?.enabled !== false;
+
   const serviceName = `agent-${agent.metadata.name}`;
   const namespace = agent.metadata.namespace || 'default';
 
@@ -95,10 +98,12 @@ export function AgentMemory({ agent }: AgentMemoryProps) {
     }
   }, [k8sClient, serviceName, namespace]);
 
-  // Auto-fetch on mount
+  // Auto-fetch on mount, but only if memory is enabled
   useEffect(() => {
-    fetchMemory();
-  }, [fetchMemory]);
+    if (isMemoryEnabled) {
+      fetchMemory();
+    }
+  }, [fetchMemory, isMemoryEnabled]);
 
   const getEventIcon = (event: MemoryEvent) => {
     if (event.role === 'user') return <User className="h-4 w-4 text-blue-500" />;
@@ -140,6 +145,32 @@ export function AgentMemory({ agent }: AgentMemoryProps) {
     }
     return String(content);
   };
+
+  // If memory is disabled, show a disabled state
+  if (!isMemoryEnabled) {
+    return (
+      <div className="space-y-4">
+        {/* Header */}
+        <div className="flex items-center gap-2">
+          <Brain className="h-5 w-5 text-muted-foreground" />
+          <h2 className="text-lg font-semibold">Agent Memory</h2>
+          <Badge variant="secondary">Disabled</Badge>
+        </div>
+
+        <Card>
+          <CardContent className="py-12">
+            <div className="text-center text-muted-foreground">
+              <Brain className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p className="font-medium">Memory is disabled for this agent</p>
+              <p className="text-sm mt-1">
+                Enable memory in the agent configuration to store conversation history and events.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

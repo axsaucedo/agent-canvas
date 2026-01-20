@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bot, Server, Network, Clock, Tag, FileCode, Settings, Activity, Globe } from 'lucide-react';
+import { Bot, Server, Network, Clock, Tag, FileCode, Settings, Activity, Globe, Brain } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -197,6 +197,50 @@ export function AgentOverview({ agent }: AgentOverviewProps) {
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">No MCP servers connected</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Memory Configuration */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Brain className="h-4 w-4 text-agent" />
+            Memory Configuration
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <InfoRow
+            label="Memory"
+            value={
+              spec.config?.memory?.enabled !== false ? (
+                <Badge variant="success">Enabled</Badge>
+              ) : (
+                <Badge variant="secondary">Disabled</Badge>
+              )
+            }
+          />
+          {spec.config?.memory?.enabled !== false && (
+            <>
+              <InfoRow
+                label="Context Limit"
+                value={<span className="font-mono">{spec.config?.memory?.contextLimit || 6}</span>}
+              />
+              <InfoRow
+                label="Max Sessions"
+                value={<span className="font-mono">{spec.config?.memory?.maxSessions || 1000}</span>}
+              />
+              <InfoRow
+                label="Max Events/Session"
+                value={<span className="font-mono">{spec.config?.memory?.maxSessionEvents || 500}</span>}
+              />
+              {spec.config?.memory?.type && (
+                <InfoRow
+                  label="Type"
+                  value={<Badge variant="outline">{spec.config.memory.type}</Badge>}
+                />
+              )}
+            </>
           )}
         </CardContent>
       </Card>

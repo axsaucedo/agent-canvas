@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
 import {
   Select,
   SelectContent,
@@ -41,6 +42,11 @@ interface AgentFormData {
   mcpServers: string[];
   networkExpose: boolean;
   networkAccess: string[];
+  // Memory configuration
+  memoryEnabled: boolean;
+  memoryContextLimit: number | undefined;
+  memoryMaxSessions: number | undefined;
+  memoryMaxSessionEvents: number | undefined;
 }
 
 interface AgentCreateDialogProps {
@@ -70,6 +76,10 @@ export function AgentCreateDialog({ open, onClose }: AgentCreateDialogProps) {
       mcpServers: [],
       networkExpose: false,
       networkAccess: [],
+      memoryEnabled: true,
+      memoryContextLimit: undefined,
+      memoryMaxSessions: undefined,
+      memoryMaxSessionEvents: undefined,
     },
   });
 
@@ -77,6 +87,7 @@ export function AgentCreateDialog({ open, onClose }: AgentCreateDialogProps) {
   const watchedMcpServers = watch('mcpServers');
   const watchedNetworkExpose = watch('networkExpose');
   const watchedNetworkAccess = watch('networkAccess');
+  const watchedMemoryEnabled = watch('memoryEnabled');
 
   const validateUniqueName = (name: string) => {
     if (agents.some((agent) => agent.metadata.name === name)) {
@@ -107,6 +118,18 @@ export function AgentCreateDialog({ open, onClose }: AgentCreateDialogProps) {
     try {
       const k8sEnvVars = envVarEntriesToK8sEnvVars(envVars);
       
+      // Build memory config if not using defaults
+      const memoryConfig = data.memoryEnabled !== true || 
+        data.memoryContextLimit || data.memoryMaxSessions || data.memoryMaxSessionEvents
+        ? {
+            enabled: data.memoryEnabled,
+            type: 'local' as const,
+            contextLimit: data.memoryContextLimit || undefined,
+            maxSessions: data.memoryMaxSessions || undefined,
+            maxSessionEvents: data.memoryMaxSessionEvents || undefined,
+          }
+        : undefined;
+      
       const newAgent: Agent = {
         apiVersion: 'kaos.tools/v1alpha1',
         kind: 'Agent',
@@ -124,6 +147,7 @@ export function AgentCreateDialog({ open, onClose }: AgentCreateDialogProps) {
           config: {
             description: data.description,
             instructions: data.instructions,
+            memory: memoryConfig,
             env: k8sEnvVars.length > 0 ? k8sEnvVars : undefined,
           },
         },
@@ -297,6 +321,81 @@ export function AgentCreateDialog({ open, onClose }: AgentCreateDialogProps) {
                   </div>
                 )}
               </div>
+
+              <Separator />
+
+              {/* Memory Configuration */}
+              <div className="space-y-4">
+                <Label className="text-sm font-medium">Memory Configuration</Label>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm text-muted-foreground">Enable Memory</span>
+                    <p className="text-[10px] text-muted-foreground">
+                      Store conversation history and events
+                    </p>
+                  </div>
+                  <Switch
+                    checked={watchedMemoryEnabled}
+                    onCheckedChange={(checked) => setValue('memoryEnabled', checked)}
+                  />
+                </div>
+                
+                {watchedMemoryEnabled && (
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="memoryContextLimit" className="text-xs text-muted-foreground">
+                        Context Limit
+                      </Label>
+                      <Input
+                        id="memoryContextLimit"
+                        type="number"
+                        min={1}
+                        max={100}
+                        {...register('memoryContextLimit', { valueAsNumber: true })}
+                        placeholder="6"
+                        className="font-mono text-sm"
+                      />
+                      <p className="text-[10px] text-muted-foreground">
+                        Messages for delegation
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="memoryMaxSessions" className="text-xs text-muted-foreground">
+                        Max Sessions
+                      </Label>
+                      <Input
+                        id="memoryMaxSessions"
+                        type="number"
+                        min={1}
+                        {...register('memoryMaxSessions', { valueAsNumber: true })}
+                        placeholder="1000"
+                        className="font-mono text-sm"
+                      />
+                      <p className="text-[10px] text-muted-foreground">
+                        Sessions to keep
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="memoryMaxSessionEvents" className="text-xs text-muted-foreground">
+                        Max Events
+                      </Label>
+                      <Input
+                        id="memoryMaxSessionEvents"
+                        type="number"
+                        min={1}
+                        {...register('memoryMaxSessionEvents', { valueAsNumber: true })}
+                        placeholder="500"
+                        className="font-mono text-sm"
+                      />
+                      <p className="text-[10px] text-muted-foreground">
+                        Events per session
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <Separator />
 
               {/* Environment Variables with Secrets */}
               <EnvVarEditorWithSecrets
