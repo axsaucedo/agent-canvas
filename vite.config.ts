@@ -5,8 +5,12 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  // Base path for GitHub Pages deployment (axsaucedo.github.io/kaos-ui/)
-  base: mode === "production" ? "/kaos-ui/" : "/",
+  // Base path for GitHub Pages deployment
+  // In production: use VITE_BASE env var (e.g., /kaos-ui/dev/, /kaos-ui/v1.0.0/)
+  // Falls back to /kaos-ui/ for backward compatibility
+  base: mode === "production" 
+    ? (process.env.VITE_BASE || "/kaos-ui/") 
+    : "/",
   server: {
     host: "::",
     port: 8080,
