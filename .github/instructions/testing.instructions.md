@@ -21,10 +21,18 @@ tests/
 ├── smoke/
 │   ├── app-loads.spec.ts     # Basic app loading tests
 │   └── cluster-connection.spec.ts  # Cluster connectivity
-└── read/
-    ├── modelapi.spec.ts      # ModelAPI read operations
-    ├── agent.spec.ts         # Agent read operations
-    └── mcpserver.spec.ts     # MCPServer read operations
+├── read/
+│   ├── modelapi.spec.ts      # ModelAPI read operations
+│   ├── agent.spec.ts         # Agent read operations
+│   └── mcpserver.spec.ts     # MCPServer read operations
+├── crud/
+│   ├── modelapi.spec.ts      # ModelAPI create/update/delete
+│   ├── agent.spec.ts         # Agent create/update/delete
+│   └── mcpserver.spec.ts     # MCPServer create/update/delete
+└── functional/
+    ├── mcpserver-tools.spec.ts  # MCPServer tools UI testing
+    ├── agent-chat.spec.ts       # Agent chat and memory testing
+    └── modelapi-request.spec.ts # ModelAPI diagnostics testing
 ```
 
 ## Prerequisites for Running Tests
@@ -154,11 +162,32 @@ Validate list and detail pages for resources:
 
 **Run before committing changes to resource components.**
 
-### Future: CRUD Tests
-Will test full Create, Update, Delete operations:
-- Form submission and validation
-- API calls and responses
-- Success/error handling
+### CRUD Tests (`tests/crud/`)
+Test full Create, Update, Delete operations:
+- Form submission with all required fields
+- Update existing resources via edit dialog
+- Delete resources and verify removal
+- Uses `test.describe.serial()` to ensure order
+
+**Use unique names with timestamps** (e.g., `test-modelapi-${Date.now()}`).
+
+```typescript
+test.describe.serial('Create, Update, Delete ModelAPI', () => {
+  const uniqueName = `test-modelapi-${Date.now()}`;
+  
+  test('should CREATE', async ({ page }) => { /* ... */ });
+  test('should UPDATE', async ({ page }) => { /* ... */ });
+  test('should DELETE', async ({ page }) => { /* ... */ });
+});
+```
+
+### Functional Tests (`tests/functional/`)
+Test interactive features and workflows:
+- MCPServer tools: list, select, execute
+- Agent chat: send messages, view memory
+- ModelAPI: diagnostics, request testing
+
+**These may require longer timeouts** for LLM responses (up to 120s).
 
 ## Best Practices
 
