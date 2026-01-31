@@ -2,7 +2,7 @@ name: Deploy Dev
 
 on:
   push:
-    branches: [main, exploration-copilot]  # TODO: Remove exploration-copilot before merge
+    branches: [main, release-process]  # TODO: Remove release-process before merge
     paths:
       - 'src/**'
       - 'public/**'
