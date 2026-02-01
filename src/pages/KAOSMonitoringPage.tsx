@@ -180,7 +180,7 @@ export default function KAOSMonitoringPage() {
           </AlertDescription>
         </Alert>
       ) : signozUrl ? (
-        <div className="flex-1 min-h-0 rounded-lg border border-border overflow-hidden bg-[#0d1117]">
+        <div className="flex-1 min-h-0 rounded-lg border border-border overflow-hidden">
           {iframeError ? (
             <div className="flex flex-col items-center justify-center h-full p-8 bg-muted/20">
               <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
