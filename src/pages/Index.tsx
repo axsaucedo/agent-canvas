@@ -37,7 +37,8 @@ function IndexContent() {
       case 'pods': return <PodsList />;
       case 'secrets': return <SecretsList />;
       case 'kaos-system': return <KAOSSystemPage />;
-      case 'kaos-monitoring': return <KAOSMonitoringPage />;
+      // kaos-monitoring is rendered separately to preserve iframe state
+      case 'kaos-monitoring': return null;
       case 'settings': return <SettingsPage />;
       default: return <OverviewDashboard />;
     }
@@ -50,6 +51,11 @@ function IndexContent() {
   return (
     <>
       {renderContent()}
+      
+      {/* KAOS Monitoring is always mounted but hidden when not active to preserve iframe state */}
+      <div className={activeTab === 'kaos-monitoring' ? '' : 'hidden'}>
+        <KAOSMonitoringPage />
+      </div>
 
       {/* ModelAPI Detail Drawer */}
       {isModelAPISelected && selectedResourceMode === 'view' && (
