@@ -1074,6 +1074,7 @@ class KubernetesClient {
       const decoder = new TextDecoder();
       let buffer = '';
       let receivedSessionId: string | undefined;
+      let hadProgressBlock = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -1083,6 +1084,11 @@ class KubernetesClient {
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
 
+        // Collect events from this batch to process with delays
+        // K8s API proxy buffers entire SSE response, so we simulate streaming
+        type SSEEvent = { type: 'progress'; data: any } | { type: 'chunk'; content: string } | { type: 'done' };
+        const events: SSEEvent[] = [];
+
         for (const line of lines) {
           const trimmed = line.trim();
           if (!trimmed || trimmed.startsWith(':')) continue;
@@ -1090,46 +1096,77 @@ class KubernetesClient {
           if (trimmed.startsWith('data: ')) {
             const data = trimmed.slice(6);
             if (data === '[DONE]') {
-              onDone({ sessionId: receivedSessionId });
-              return;
+              events.push({ type: 'done' });
+              break;
             }
 
             try {
               const parsed = JSON.parse(data);
               
-              // Extract session_id from the response object
               if (parsed.session_id) {
                 receivedSessionId = parsed.session_id;
               }
 
               const content = parsed.choices?.[0]?.delta?.content;
               if (content !== undefined && content !== null && content !== '') {
-                // Skip standalone empty JSON objects (transition signals)
                 const trimmedContent = content.trim();
-                if (trimmedContent === '{}') {
-                  console.log('[k8sClient] Skipping empty JSON transition signal');
-                  continue;
-                }
                 
-                // Check if this chunk is a progress block (stringified JSON with type=progress)
+                // Check if this is a progress block (stringified JSON with type=progress)
                 if (trimmedContent.startsWith('{')) {
                   try {
                     const progressData = JSON.parse(trimmedContent);
                     if (progressData && typeof progressData === 'object' && progressData.type === 'progress' && onProgress) {
                       console.log('[k8sClient] Progress block detected:', progressData);
-                      onProgress(progressData);
+                      events.push({ type: 'progress', data: progressData });
+                      hadProgressBlock = true;
                       continue;
                     }
                   } catch {
                     // Not valid JSON - treat as regular content
                   }
                 }
-                onChunk(content);
+                
+                // Clean transition artifacts after progress blocks
+                let cleanedContent = content;
+                if (hadProgressBlock) {
+                  // Strip markdown code blocks containing just {} (e.g. ```json\n{}\n```)
+                  cleanedContent = cleanedContent.replace(/```json\n\{\}\n```\n*/g, '');
+                  cleanedContent = cleanedContent.replace(/^```$/gm, '');
+                  // Strip "Final Response to User:" headers
+                  cleanedContent = cleanedContent.replace(/\*\*Final Response to User:\*\*\s*/g, '');
+                  cleanedContent = cleanedContent.replace(/\*\*Final Response:\*\*\s*/g, '');
+                  // Skip standalone {} or empty after cleanup
+                  if (cleanedContent.trim() === '{}' || cleanedContent.trim() === '') {
+                    console.log('[k8sClient] Skipping transition artifact');
+                    continue;
+                  }
+                  // Trim leading whitespace/newlines from first real content
+                  cleanedContent = cleanedContent.replace(/^\s*\n+/, '');
+                  if (!cleanedContent) continue;
+                }
+                
+                events.push({ type: 'chunk', content: cleanedContent });
               }
             } catch {
-              // Skip unparseable lines
               console.warn('[k8sClient] Skipping unparseable SSE line:', trimmed);
             }
+          }
+        }
+
+        // Process events with small delays to simulate real-time streaming
+        // This is necessary because K8s API proxy buffers the entire SSE response
+        const needsDelay = events.length > 2;
+        for (const event of events) {
+          if (needsDelay) {
+            await new Promise(resolve => setTimeout(resolve, event.type === 'progress' ? 100 : 30));
+          }
+          if (event.type === 'progress') {
+            onProgress!(event.data);
+          } else if (event.type === 'chunk') {
+            onChunk(event.content);
+          } else if (event.type === 'done') {
+            onDone({ sessionId: receivedSessionId });
+            return;
           }
         }
       }
