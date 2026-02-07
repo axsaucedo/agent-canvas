@@ -5,39 +5,37 @@ import type { ResourceNodeData } from './types';
 import type { ModelAPI, MCPServer, Agent } from '@/types/kubernetes';
 import { MarkerType } from '@xyflow/react';
 
-const ROW_SPACING = 140;
-
-/**
- * Column order: ModelAPI (0), Agent (1), MCPServer (2)
- * Agents in the middle since they reference both ModelAPIs and MCPServers.
- */
-const COLUMN_X: Record<string, number> = { ModelAPI: 0, Agent: 450, MCPServer: 900 };
 const COLUMN_ORDER = ['ModelAPI', 'MCPServer', 'Agent'] as const;
 
-function buildGraph(modelAPIs: ModelAPI[], mcpServers: MCPServer[], agents: Agent[]) {
+function buildGraph(
+  modelAPIs: ModelAPI[],
+  mcpServers: MCPServer[],
+  agents: Agent[],
+  dimModelAPIEdges: boolean,
+) {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
   const nodeId = (kind: string, ns: string, name: string) => `${kind}/${ns}/${name}`;
 
   // Column headers
-  (['ModelAPI', 'Agent', 'MCPServer'] as const).forEach((key, i) => {
+  (['ModelAPI', 'Agent', 'MCPServer'] as const).forEach((key) => {
     const list = key === 'ModelAPI' ? modelAPIs : key === 'MCPServer' ? mcpServers : agents;
     const labels: Record<string, string> = { ModelAPI: 'Model APIs', Agent: 'Agents', MCPServer: 'MCP Servers' };
     nodes.push({
       id: `header-${key}`,
       type: 'columnHeader',
-      position: { x: i * 450, y: -60 },
+      position: { x: 0, y: -60 },
       data: { label: labels[key], count: list.length },
       draggable: false,
       selectable: false,
     });
   });
 
-  modelAPIs.forEach((r, i) => {
+  modelAPIs.forEach((r) => {
     nodes.push({
       id: nodeId('ModelAPI', r.metadata.namespace, r.metadata.name),
       type: 'resourceNode',
-      position: { x: COLUMN_X.ModelAPI, y: i * ROW_SPACING },
+      position: { x: 0, y: 0 },
       data: {
         label: r.metadata.name, namespace: r.metadata.namespace,
         status: r.status?.phase || 'Unknown', statusMessage: r.status?.message,
@@ -46,11 +44,11 @@ function buildGraph(modelAPIs: ModelAPI[], mcpServers: MCPServer[], agents: Agen
     });
   });
 
-  mcpServers.forEach((r, i) => {
+  mcpServers.forEach((r) => {
     nodes.push({
       id: nodeId('MCPServer', r.metadata.namespace, r.metadata.name),
       type: 'resourceNode',
-      position: { x: COLUMN_X.MCPServer, y: i * ROW_SPACING },
+      position: { x: 0, y: 0 },
       data: {
         label: r.metadata.name, namespace: r.metadata.namespace,
         status: r.status?.phase || 'Unknown', statusMessage: r.status?.message,
@@ -59,12 +57,12 @@ function buildGraph(modelAPIs: ModelAPI[], mcpServers: MCPServer[], agents: Agen
     });
   });
 
-  agents.forEach((agent, i) => {
+  agents.forEach((agent) => {
     const agentId = nodeId('Agent', agent.metadata.namespace, agent.metadata.name);
     nodes.push({
       id: agentId,
       type: 'resourceNode',
-      position: { x: COLUMN_X.Agent, y: i * ROW_SPACING },
+      position: { x: 0, y: 0 },
       data: {
         label: agent.metadata.name, namespace: agent.metadata.namespace,
         status: agent.status?.phase || 'Unknown', statusMessage: agent.status?.message,
@@ -72,27 +70,30 @@ function buildGraph(modelAPIs: ModelAPI[], mcpServers: MCPServer[], agents: Agen
       } satisfies ResourceNodeData,
     });
 
+    // ModelAPI edge — gray, toggleable opacity
     if (agent.spec.modelAPI) {
       const sourceId = nodeId('ModelAPI', agent.metadata.namespace, agent.spec.modelAPI);
-      const sourceReady = modelAPIs.find(m => m.metadata.name === agent.spec.modelAPI && m.metadata.namespace === agent.metadata.namespace)?.status?.phase?.toLowerCase() === 'ready';
       edges.push({
         id: `edge-modelapi-${agent.metadata.name}`,
         source: sourceId, target: agentId, type: 'dynamic',
-        animated: sourceReady !== false, label: 'model',
-        style: { stroke: 'hsl(var(--modelapi-color))', strokeWidth: 2 },
-        markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--modelapi-color))' },
-        labelStyle: { fill: 'hsl(var(--muted-foreground))', fontSize: 10 },
+        animated: !dimModelAPIEdges, label: 'model',
+        style: {
+          stroke: dimModelAPIEdges ? 'hsl(var(--muted-foreground) / 0.25)' : 'hsl(var(--muted-foreground) / 0.6)',
+          strokeWidth: dimModelAPIEdges ? 1 : 2,
+        },
+        markerEnd: { type: MarkerType.ArrowClosed, color: dimModelAPIEdges ? 'hsl(var(--muted-foreground) / 0.25)' : 'hsl(var(--muted-foreground) / 0.6)' },
+        labelStyle: { fill: 'hsl(var(--muted-foreground))', fontSize: 10, opacity: dimModelAPIEdges ? 0.3 : 1 },
         labelBgStyle: { fill: 'hsl(var(--card))', fillOpacity: 0.9 },
       });
     }
 
+    // MCPServer edges — keep colored
     agent.spec.mcpServers?.forEach((mcpName) => {
       const sourceId = nodeId('MCPServer', agent.metadata.namespace, mcpName);
-      const sourceReady = mcpServers.find(m => m.metadata.name === mcpName && m.metadata.namespace === agent.metadata.namespace)?.status?.phase?.toLowerCase() === 'ready';
       edges.push({
         id: `edge-mcp-${mcpName}-${agent.metadata.name}`,
         source: sourceId, target: agentId, type: 'dynamic',
-        animated: sourceReady !== false, label: 'tools',
+        animated: true, label: 'tools',
         style: { stroke: 'hsl(var(--mcpserver-color))', strokeWidth: 2 },
         markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--mcpserver-color))' },
         labelStyle: { fill: 'hsl(var(--muted-foreground))', fontSize: 10 },
@@ -115,6 +116,7 @@ export function useVisualMapLayout(
   modelAPIs: ModelAPI[],
   mcpServers: MCPServer[],
   agents: Agent[],
+  dimModelAPIEdges: boolean = false,
 ) {
   const lockedPositions = useRef<Map<string, { x: number; y: number }>>(new Map());
   const [isLocked, setIsLocked] = useState(false);
@@ -131,10 +133,10 @@ export function useVisualMapLayout(
     }
 
     hasInitialized.current = true;
-    const { nodes, edges } = buildGraph(modelAPIs, mcpServers, agents);
+    const { nodes, edges } = buildGraph(modelAPIs, mcpServers, agents, dimModelAPIEdges);
     const layouted = computeLayout(nodes, edges, new Set(lockedPositions.current.keys()));
     return { initialNodes: layouted, initialEdges: edges, changed: true };
-  }, [modelAPIs, mcpServers, agents]);
+  }, [modelAPIs, mcpServers, agents, dimModelAPIEdges]);
 
   const handleNodeDragStop = useCallback((_: any, node: Node) => {
     lockedPositions.current.set(node.id, { ...node.position });

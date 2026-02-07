@@ -1,17 +1,23 @@
-import React from 'react';
-import { getBezierPath, useInternalNode, EdgeLabelRenderer, Position, type EdgeProps } from '@xyflow/react';
+import React, { useContext } from 'react';
+import { getSmoothStepPath, useInternalNode, EdgeLabelRenderer, Position, type EdgeProps } from '@xyflow/react';
+import { VisualMapCompactContext } from './ResourceNode';
 
-const NODE_W = 240;
-const NODE_H = 120;
+// Full card dimensions
+const CARD_W = 240;
+const CARD_H = 120;
+
+// Compact pill dimensions (matches ResourceNode pill rendering)
+const PILL_W = 160;
+const PILL_H = 32;
 
 type Side = 'top' | 'bottom' | 'left' | 'right';
 
-function getAnchors(x: number, y: number) {
+function getAnchors(x: number, y: number, w: number, h: number) {
   return {
-    top:    { x: x + NODE_W / 2, y },
-    bottom: { x: x + NODE_W / 2, y: y + NODE_H },
-    left:   { x, y: y + NODE_H / 2 },
-    right:  { x: x + NODE_W, y: y + NODE_H / 2 },
+    top:    { x: x + w / 2, y },
+    bottom: { x: x + w / 2, y: y + h },
+    left:   { x, y: y + h / 2 },
+    right:  { x: x + w, y: y + h / 2 },
   };
 }
 
@@ -26,9 +32,14 @@ const SIDE_TO_POSITION: Record<Side, Position> = {
   right: Position.Right,
 };
 
-function bestAnchors(srcPos: { x: number; y: number }, tgtPos: { x: number; y: number }) {
-  const srcAnchors = getAnchors(srcPos.x, srcPos.y);
-  const tgtAnchors = getAnchors(tgtPos.x, tgtPos.y);
+function bestAnchors(
+  srcPos: { x: number; y: number },
+  tgtPos: { x: number; y: number },
+  srcW: number, srcH: number,
+  tgtW: number, tgtH: number,
+) {
+  const srcAnchors = getAnchors(srcPos.x, srcPos.y, srcW, srcH);
+  const tgtAnchors = getAnchors(tgtPos.x, tgtPos.y, tgtW, tgtH);
   const sides: Side[] = ['top', 'bottom', 'left', 'right'];
 
   let best = { src: srcAnchors.right, tgt: tgtAnchors.left, srcSide: 'right' as Side, tgtSide: 'left' as Side, d: Infinity };
@@ -48,6 +59,7 @@ export function DynamicEdge({
   id, source, target, label, style, markerEnd, animated,
   labelStyle, labelBgStyle,
 }: EdgeProps) {
+  const isCompact = useContext(VisualMapCompactContext);
   const sourceNode = useInternalNode(source);
   const targetNode = useInternalNode(target);
 
@@ -55,15 +67,21 @@ export function DynamicEdge({
 
   const srcPos = sourceNode.internals.positionAbsolute;
   const tgtPos = targetNode.internals.positionAbsolute;
-  const { src, tgt, srcSide, tgtSide } = bestAnchors(srcPos, tgtPos);
 
-  const [edgePath, labelX, labelY] = getBezierPath({
+  // Use correct dimensions based on compact mode
+  const w = isCompact ? PILL_W : CARD_W;
+  const h = isCompact ? PILL_H : CARD_H;
+
+  const { src, tgt, srcSide, tgtSide } = bestAnchors(srcPos, tgtPos, w, h, w, h);
+
+  const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX: src.x,
     sourceY: src.y,
     targetX: tgt.x,
     targetY: tgt.y,
     sourcePosition: SIDE_TO_POSITION[srcSide],
     targetPosition: SIDE_TO_POSITION[tgtSide],
+    borderRadius: 8,
   });
 
   const markerEndStr = typeof markerEnd === 'string'
