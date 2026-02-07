@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, LayoutGrid, Maximize, Lock, Unlock, Minimize2, Maximize2 } from 'lucide-react';
+import { Search, LayoutGrid, Maximize, Lock, Unlock, Minimize2, Maximize2, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
@@ -11,6 +11,7 @@ interface VisualMapToolbarProps {
   searchQuery: string;
   isLocked: boolean;
   isCompact: boolean;
+  dimModelAPIEdges: boolean;
   onToggleKind: (kind: ResourceKind) => void;
   onToggleStatus: (status: string) => void;
   onSearchChange: (query: string) => void;
@@ -18,6 +19,7 @@ interface VisualMapToolbarProps {
   onFitView: () => void;
   onToggleLock: () => void;
   onToggleCompact: () => void;
+  onToggleDimModelAPIEdges: () => void;
 }
 
 const KIND_CHIPS: { kind: ResourceKind; label: string; colorVar: string }[] = [
@@ -32,6 +34,7 @@ export function VisualMapToolbar({
   searchQuery,
   isLocked,
   isCompact,
+  dimModelAPIEdges,
   onToggleKind,
   onToggleStatus,
   onSearchChange,
@@ -39,6 +42,7 @@ export function VisualMapToolbar({
   onFitView,
   onToggleLock,
   onToggleCompact,
+  onToggleDimModelAPIEdges,
 }: VisualMapToolbarProps) {
   return (
     <div className="absolute top-3 left-3 right-3 z-10 flex items-center gap-2 flex-wrap">
@@ -99,6 +103,15 @@ export function VisualMapToolbar({
 
       {/* Layout controls */}
       <div className="flex items-center gap-1 bg-card/90 backdrop-blur-sm rounded-lg border border-border px-1 py-0.5">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="xs" onClick={onToggleDimModelAPIEdges} className={`h-7 w-7 p-0 ${dimModelAPIEdges ? 'text-muted-foreground' : ''}`}>
+              {dimModelAPIEdges ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{dimModelAPIEdges ? 'Show model edges' : 'Dim model edges'}</TooltipContent>
+        </Tooltip>
+
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="xs" onClick={onToggleCompact} className={`h-7 w-7 p-0 ${isCompact ? 'text-primary' : ''}`}>

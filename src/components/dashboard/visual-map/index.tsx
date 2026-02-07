@@ -63,6 +63,7 @@ function VisualMapInner() {
   const { modelAPIs, mcpServers, agents } = useKubernetesStore();
   const [zoom, setZoom] = useState(1);
   const [isCompact, setIsCompact] = useState(false);
+  const [dimModelAPIEdges, setDimModelAPIEdges] = useState(false);
 
   const {
     initialNodes,
@@ -72,7 +73,7 @@ function VisualMapInner() {
     toggleLock,
     handleNodeDragStop,
     reLayout,
-  } = useVisualMapLayout(modelAPIs, mcpServers, agents);
+  } = useVisualMapLayout(modelAPIs, mcpServers, agents, dimModelAPIEdges);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -87,7 +88,7 @@ function VisualMapInner() {
     }
   }, [initialNodes, initialEdges, changed, setNodes, setEdges]);
 
-  // Track zoom
+  // Track zoom (for label detail level, NOT for compact toggle)
   useOnViewportChange({
     onChange: useCallback((vp: Viewport) => setZoom(vp.zoom), []),
   });
@@ -113,6 +114,7 @@ function VisualMapInner() {
   }, [fitView]);
 
   const toggleCompact = useCallback(() => setIsCompact(prev => !prev), []);
+  const toggleDimModelAPIEdges = useCallback(() => setDimModelAPIEdges(prev => !prev), []);
 
   const isEmpty = modelAPIs.length === 0 && mcpServers.length === 0 && agents.length === 0;
 
@@ -136,6 +138,7 @@ function VisualMapInner() {
               searchQuery={searchQuery}
               isLocked={isLocked}
               isCompact={isCompact}
+              dimModelAPIEdges={dimModelAPIEdges}
               onToggleKind={toggleKind}
               onToggleStatus={toggleStatus}
               onSearchChange={setSearchQuery}
@@ -143,6 +146,7 @@ function VisualMapInner() {
               onFitView={handleFitView}
               onToggleLock={toggleLock}
               onToggleCompact={toggleCompact}
+              onToggleDimModelAPIEdges={toggleDimModelAPIEdges}
             />
 
             <ReactFlow

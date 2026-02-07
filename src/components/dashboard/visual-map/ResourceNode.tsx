@@ -7,7 +7,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip
 import type { ResourceNodeData, ResourceKind } from './types';
 import { RESOURCE_ROUTES } from './types';
 
-// Context for zoom level and compact mode toggle
+// Context for zoom level and compact mode toggle (zoom no longer triggers compact)
 export const VisualMapZoomContext = createContext<number>(1);
 export const VisualMapCompactContext = createContext<boolean>(false);
 
@@ -82,7 +82,7 @@ function hasWarning(statusMessage?: string): boolean {
 export function ResourceNode({ data }: { data: ResourceNodeData }) {
   const navigate = useNavigate();
   const zoom = useContext(VisualMapZoomContext);
-  const compactToggle = useContext(VisualMapCompactContext);
+  const isCompact = useContext(VisualMapCompactContext);
   const config = RESOURCE_CONFIG[data.resourceType];
   const Icon = config.icon;
   const route = RESOURCE_ROUTES[data.resourceType];
@@ -97,7 +97,6 @@ export function ResourceNode({ data }: { data: ResourceNodeData }) {
 
   const statusDot = getStatusDotColor(data.status);
   const showWarning = hasWarning(data.statusMessage);
-  const isCompact = compactToggle || zoom < 0.6;
 
   // All 4 handles always present so dynamic edges can connect to any side
   const handles = (
@@ -109,7 +108,7 @@ export function ResourceNode({ data }: { data: ResourceNodeData }) {
     </>
   );
 
-  // ── Compact pill ──
+  // ── Compact pill (only via toolbar toggle, NOT zoom) ──
   if (isCompact) {
     return (
       <>
@@ -124,7 +123,7 @@ export function ResourceNode({ data }: { data: ResourceNodeData }) {
           `}
         >
           <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-          <span className="text-[10px] font-medium text-foreground truncate max-w-[100px]">{data.label}</span>
+          <span className="text-[10px] font-medium text-foreground truncate max-w-[120px]">{data.label}</span>
           <div className={`w-2 h-2 rounded-full ${statusDot} shrink-0`} />
         </div>
       </>
