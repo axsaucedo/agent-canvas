@@ -32,9 +32,9 @@ function countStatuses(resources: (ModelAPI | MCPServer | Agent)[]) {
 
 function StatusBubble({ count, variant }: { count: number; variant: 'success' | 'warning' | 'destructive' }) {
   const colors = {
-    success: 'bg-success text-success-foreground',
-    warning: 'bg-warning text-warning-foreground',
-    destructive: 'bg-destructive text-destructive-foreground',
+    success: 'bg-emerald-500/90 text-white',
+    warning: 'bg-amber-500/90 text-white',
+    destructive: 'bg-rose-500/90 text-white',
   };
   return (
     <span className={`inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[9px] font-bold ${colors[variant]}`}>
@@ -51,7 +51,7 @@ export function ResourceStatusLegend({ modelAPIs, mcpServers, agents }: Resource
   ], [modelAPIs, mcpServers, agents]);
 
   return (
-    <div className="absolute bottom-3 right-3 z-10 opacity-40 hover:opacity-100 transition-opacity duration-300">
+    <div className="absolute bottom-3 left-3 z-10 opacity-40 hover:opacity-100 transition-opacity duration-300">
       <div className="bg-card/90 backdrop-blur-sm border border-border rounded-lg px-3 py-2 shadow-sm">
         <div className="flex flex-col gap-1.5">
           {rows.map((row) => (
