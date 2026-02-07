@@ -15,6 +15,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { ReactFlowProvider } from '@xyflow/react';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { ResourceStatusLegend } from './ResourceStatusLegend';
 import { Bot } from 'lucide-react';
 import { useKubernetesStore } from '@/stores/kubernetesStore';
 import { ResourceNode, VisualMapZoomContext, VisualMapCompactContext } from './ResourceNode';
@@ -238,6 +239,7 @@ function VisualMapInner() {
                 maskColor="hsl(var(--background) / 0.7)"
               />
             </ReactFlow>
+            <ResourceStatusLegend modelAPIs={modelAPIs} mcpServers={mcpServers} agents={agents} />
           </div>
 
           {/* Edit Dialogs */}

@@ -177,15 +177,15 @@ export function ResourceNode({ data, onEdit }: { data: ResourceNodeData; onEdit?
           </div>
         )}
 
-        <div className="flex items-center gap-1.5 mt-1.5 border-t border-border/50 pt-1.5">
-          {config.quickActions.map((qa) => {
+        <div className="grid grid-cols-4 gap-0 mt-1.5 border-t border-border/50 pt-1.5">
+          {[...config.quickActions.map((qa) => {
             const QAIcon = ICON_MAP[qa.icon];
             return (
               <Tooltip key={qa.tab} delayDuration={600}>
                 <TooltipTrigger asChild>
                   <button
                     onClick={(e) => handleQuickAction(qa.tab, e)}
-                    className="p-1.5 rounded-lg text-muted-foreground transition-all duration-300 ease-out hover:scale-[2] hover:text-[hsl(180_100%_80%)] hover:bg-[linear-gradient(135deg,hsl(270_80%_60%/0.25),hsl(190_100%_50%/0.25))] hover:shadow-[0_0_12px_hsl(270_80%_60%/0.5),0_0_24px_hsl(190_100%_50%/0.3)] hover:z-10 relative"
+                    className="p-1.5 rounded-lg text-muted-foreground transition-all duration-300 ease-out hover:scale-[2] hover:text-[hsl(180_100%_80%)] hover:bg-[linear-gradient(135deg,hsl(270_80%_60%/0.25),hsl(190_100%_50%/0.25))] hover:shadow-[0_0_12px_hsl(270_80%_60%/0.5),0_0_24px_hsl(190_100%_50%/0.3)] hover:z-10 relative flex items-center justify-center"
                   >
                     <QAIcon className="h-3.5 w-3.5" />
                   </button>
@@ -193,19 +193,22 @@ export function ResourceNode({ data, onEdit }: { data: ResourceNodeData; onEdit?
                 <TooltipContent side="bottom" className="text-sm px-3 py-1.5 font-medium">{qa.label}</TooltipContent>
               </Tooltip>
             );
-          })}
-          <div className="flex-1" />
-          <Tooltip delayDuration={600}>
+          }),
+          // Fill empty slots then edit as last column
+          ...Array.from({ length: 3 - config.quickActions.length }, (_, i) => (
+            <div key={`spacer-${i}`} />
+          )),
+          <Tooltip key="edit" delayDuration={600}>
             <TooltipTrigger asChild>
               <button
                 onClick={handleEdit}
-                className="p-1.5 rounded-lg text-muted-foreground transition-all duration-300 ease-out hover:scale-[2] hover:text-[hsl(180_100%_80%)] hover:bg-[linear-gradient(135deg,hsl(270_80%_60%/0.25),hsl(190_100%_50%/0.25))] hover:shadow-[0_0_12px_hsl(270_80%_60%/0.5),0_0_24px_hsl(190_100%_50%/0.3)] hover:z-10 relative opacity-0 group-hover:opacity-100"
+                className="p-1.5 rounded-lg text-muted-foreground transition-all duration-300 ease-out hover:scale-[2] hover:text-[hsl(180_100%_80%)] hover:bg-[linear-gradient(135deg,hsl(270_80%_60%/0.25),hsl(190_100%_50%/0.25))] hover:shadow-[0_0_12px_hsl(270_80%_60%/0.5),0_0_24px_hsl(190_100%_50%/0.3)] hover:z-10 relative flex items-center justify-center"
               >
                 <Pencil className="h-3.5 w-3.5" />
               </button>
             </TooltipTrigger>
             <TooltipContent side="bottom" className="text-sm px-3 py-1.5 font-medium">Edit</TooltipContent>
-          </Tooltip>
+          </Tooltip>]}
         </div>
       </div>
     </>
