@@ -116,12 +116,15 @@ export function AgentChat({
     }
   }, [sessionId, externalMessages.length, hasActiveSession, fetchSessionHistory]);
   
-  // Sync hook messages back to parent
+  // Sync hook messages back to parent for persistence (but render hookMessages directly for real-time streaming)
   useEffect(() => {
-    if (hookMessages !== externalMessages && hookMessages.length > 0) {
+    if (hookMessages.length > 0 && hookMessages !== externalMessages) {
       onMessagesChange(hookMessages);
     }
-  }, [hookMessages, externalMessages, onMessagesChange]);
+  }, [hookMessages]);
+
+  // Use hookMessages for rendering to get real-time streaming updates
+  const displayMessages = hookMessages.length > 0 ? hookMessages : externalMessages;
   
   const sendMessage = useCallback((content: string) => {
     // Ensure we have a session ID before sending the first message
@@ -137,7 +140,7 @@ export function AgentChat({
         scrollContainer.scrollTop = scrollContainer.scrollHeight;
       }
     }
-  }, [externalMessages]);
+  }, [displayMessages]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -257,9 +260,9 @@ export function AgentChat({
               {agent.spec.model}
             </span>
           )}
-          {externalMessages.length > 0 && (
+          {displayMessages.length > 0 && (
             <span className="text-xs text-muted-foreground">
-              ({externalMessages.length} messages)
+              ({displayMessages.length} messages)
             </span>
           )}
         </div>
@@ -285,9 +288,9 @@ export function AgentChat({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => externalMessages.length > 1 && sendMessage(externalMessages[externalMessages.length - 2]?.content || '')}
+                  onClick={() => displayMessages.length > 1 && sendMessage(displayMessages[displayMessages.length - 2]?.content || '')}
                   className="h-7 text-xs"
-                  disabled={externalMessages.length < 2}
+                  disabled={displayMessages.length < 2}
                 >
                   <RefreshCw className="h-3 w-3 mr-1" />
                   Retry
@@ -300,7 +303,7 @@ export function AgentChat({
 
       {/* Messages */}
       <ScrollArea ref={scrollAreaRef} className="flex-1">
-        {externalMessages.length === 0 ? (
+        {displayMessages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full py-12 px-4 text-center">
             <div className="h-16 w-16 rounded-full bg-agent/10 flex items-center justify-center mb-4">
               <span className="text-3xl">🤖</span>
@@ -315,9 +318,8 @@ export function AgentChat({
           </div>
         ) : (
           <div className="divide-y divide-border/50">
-            {externalMessages.map((message) => (
+            {displayMessages.map((message) => (
               <div key={message.id}>
-                {/* Show reasoning steps before the assistant message content */}
                 {message.role === 'assistant' && message.progressSteps && message.progressSteps.length > 0 && (
                   <ReasoningSteps
                     steps={message.progressSteps}
