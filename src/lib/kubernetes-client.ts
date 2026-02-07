@@ -1038,6 +1038,11 @@ class KubernetesClient {
             ...(seed !== undefined && { seed }),
           }),
           signal,
+          headers: stream ? {
+            'Accept': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+          } : undefined,
         },
         namespace
       );
@@ -1099,10 +1104,17 @@ class KubernetesClient {
 
               const content = parsed.choices?.[0]?.delta?.content;
               if (content !== undefined && content !== null && content !== '') {
-                // Check if this chunk is a progress block (JSON with type=progress)
-                if (typeof content === 'string' && content.trimStart().startsWith('{')) {
+                // Skip standalone empty JSON objects (transition signals)
+                const trimmedContent = content.trim();
+                if (trimmedContent === '{}') {
+                  console.log('[k8sClient] Skipping empty JSON transition signal');
+                  continue;
+                }
+                
+                // Check if this chunk is a progress block (stringified JSON with type=progress)
+                if (trimmedContent.startsWith('{')) {
                   try {
-                    const progressData = JSON.parse(content);
+                    const progressData = JSON.parse(trimmedContent);
                     if (progressData && typeof progressData === 'object' && progressData.type === 'progress' && onProgress) {
                       console.log('[k8sClient] Progress block detected:', progressData);
                       onProgress(progressData);
