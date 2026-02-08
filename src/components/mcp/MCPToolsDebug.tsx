@@ -7,7 +7,9 @@ import {
   CheckCircle2,
   Copy,
   Check,
-  Loader2
+  Loader2,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { JsonSyntaxHighlight } from '@/components/mcp/JsonSyntaxHighlight';
 import { k8sClient } from '@/lib/kubernetes-client';
 import type { MCPServer } from '@/types/kubernetes';
 import type { MCPTool, MCPToolCallResult } from '@/types/mcp';
@@ -162,6 +165,7 @@ export function MCPToolsDebug({ mcpServer }: MCPToolsDebugProps) {
   const [isCallingTool, setIsCallingTool] = useState(false);
   const [callHistory, setCallHistory] = useState<ToolCallHistory[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [descExpanded, setDescExpanded] = useState(false);
 
   // Session state
   const sessionRef = useRef<MCPSession | null>(null);
@@ -271,6 +275,7 @@ export function MCPToolsDebug({ mcpServer }: MCPToolsDebugProps) {
   // Handle tool selection
   const handleSelectTool = (tool: MCPTool) => {
     setSelectedTool(tool);
+    setDescExpanded(false);
     const initialArgs: Record<string, string> = {};
     const schema = getToolSchema(tool);
     if (schema?.properties) {
@@ -381,7 +386,7 @@ export function MCPToolsDebug({ mcpServer }: MCPToolsDebugProps) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-background rounded-lg border border-border overflow-hidden">
+    <div className="flex flex-col h-full bg-background rounded-lg border border-border overflow-hidden min-h-0">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">
         <div className="flex items-center gap-2">
@@ -484,21 +489,40 @@ export function MCPToolsDebug({ mcpServer }: MCPToolsDebugProps) {
         <div className="flex-1 flex flex-col">
           {selectedTool ? (
             <>
-              {/* Selected Tool Header */}
-              <div className="px-4 py-3 border-b border-border bg-muted/20">
-                <div className="flex items-center gap-2">
+              {/* Selected Tool Header with collapsible description */}
+              <div className="px-4 py-3 border-b border-border bg-muted/20 shrink-0">
+                <div className="flex items-center justify-between">
                   <Badge variant="outline" className="font-mono">
                     {selectedTool.name}
                   </Badge>
+                  {selectedTool.description && selectedTool.description.length > 80 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2"
+                      onClick={() => setDescExpanded(!descExpanded)}
+                    >
+                      {descExpanded ? (
+                        <ChevronUp className="h-3 w-3" />
+                      ) : (
+                        <ChevronDown className="h-3 w-3" />
+                      )}
+                    </Button>
+                  )}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {selectedTool.description}
-                </p>
+                {selectedTool.description && (
+                  <p className={`text-xs text-muted-foreground mt-1 whitespace-pre-wrap ${
+                    descExpanded ? '' : 'line-clamp-1'
+                  }`}>
+                    {selectedTool.description}
+                  </p>
+                )}
               </div>
 
-              {/* Parameters Form */}
-              <div className="flex-1 overflow-auto p-4">
-                <div className="space-y-4">
+              {/* Scrollable content area */}
+              <ScrollArea className="flex-1 min-h-0">
+                <div className="p-4 space-y-4">
+                  {/* Parameters Form */}
                   <div>
                     <h4 className="text-sm font-medium mb-3">Parameters</h4>
                     {(() => {
@@ -570,49 +594,56 @@ export function MCPToolsDebug({ mcpServer }: MCPToolsDebugProps) {
                     <div className="mt-6">
                       <h4 className="text-sm font-medium mb-3">Call History</h4>
                       <div className="space-y-2">
-                        {callHistory.map((entry) => (
-                          <div
-                            key={entry.id}
-                            className="rounded-lg border border-border p-3 bg-muted/20"
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center gap-2">
-                                {entry.error ? (
-                                  <AlertCircle className="h-4 w-4 text-destructive" />
-                                ) : (
-                                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                                )}
-                                <span className="font-mono text-sm">{entry.toolName}</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <span>{entry.duration}ms</span>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6"
-                                  onClick={() => handleCopyResult(
-                                    entry.id,
-                                    JSON.stringify(entry.result || entry.error, null, 2)
-                                  )}
-                                >
-                                  {copiedId === entry.id ? (
-                                    <Check className="h-3 w-3" />
+                        {callHistory.map((entry) => {
+                          const resultStr = entry.error || JSON.stringify(entry.result, null, 2);
+                          const isJson = !entry.error && entry.result != null;
+                          return (
+                            <div
+                              key={entry.id}
+                              className="rounded-lg border border-border p-3 bg-muted/20"
+                            >
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  {entry.error ? (
+                                    <AlertCircle className="h-4 w-4 text-destructive" />
                                   ) : (
-                                    <Copy className="h-3 w-3" />
+                                    <CheckCircle2 className="h-4 w-4 text-green-500" />
                                   )}
-                                </Button>
+                                  <span className="font-mono text-sm">{entry.toolName}</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <span>{entry.duration}ms</span>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    onClick={() => handleCopyResult(entry.id, resultStr)}
+                                  >
+                                    {copiedId === entry.id ? (
+                                      <Check className="h-3 w-3" />
+                                    ) : (
+                                      <Copy className="h-3 w-3" />
+                                    )}
+                                  </Button>
+                                </div>
+                              </div>
+                              <div className="bg-background rounded p-2 overflow-auto max-h-64">
+                                {isJson ? (
+                                  <JsonSyntaxHighlight json={resultStr} />
+                                ) : (
+                                  <pre className="text-xs font-mono whitespace-pre-wrap break-all text-destructive">
+                                    {resultStr}
+                                  </pre>
+                                )}
                               </div>
                             </div>
-                            <pre className="text-xs bg-background rounded p-2 overflow-auto max-h-48 whitespace-pre-wrap break-all">
-                              {entry.error || JSON.stringify(entry.result, null, 2)}
-                            </pre>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}
                 </div>
-              </div>
+              </ScrollArea>
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center">

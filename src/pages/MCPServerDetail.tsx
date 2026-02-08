@@ -213,7 +213,7 @@ export default function MCPServerDetail() {
           <MCPServerOverview mcpServer={mcpServer} />
         </TabsContent>
 
-        <TabsContent value="tools" className="h-[calc(100vh-320px)]">
+        <TabsContent value="tools" className="h-[calc(100vh-280px)] min-h-[500px]">
           <MCPToolsDebug mcpServer={mcpServer} />
         </TabsContent>
 
